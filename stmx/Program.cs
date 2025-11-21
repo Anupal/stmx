@@ -12,7 +12,9 @@ class Program
     {
         var services = new ServiceCollection();
         services.AddTransient<Command, DummyCommand>();
+        services.AddTransient<Command, BatteryCommand>();
         services.AddTransient<DummyService>();
+        services.AddTransient<SystemStatsService>();
 
         using var serviceProvider = services.BuildServiceProvider();
 
