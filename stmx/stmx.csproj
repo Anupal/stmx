@@ -7,6 +7,8 @@
 
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <RuntimeIdentifiers>linux-x64;win-x64;osx-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <!-- Code Quality & Analysic -->
@@ -29,8 +31,6 @@
     <PublishSingleFile>true</PublishSingleFile>
     <PublishTrimmed>true</PublishTrimmed>
     <UseAppHost>true</UseAppHost>
-
-    <RuntimeIdentifiers>linux-x64;win-x64;osx-x64</RuntimeIdentifiers>
 
     <PublishReadyToRun>true</PublishReadyToRun>
   </PropertyGroup>
