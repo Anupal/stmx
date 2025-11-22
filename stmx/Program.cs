@@ -12,7 +12,12 @@ class Program
     {
         var services = new ServiceCollection();
         services.AddTransient<Command, DummyCommand>();
+        services.AddTransient<Command, BatteryCommand>();
         services.AddTransient<DummyService>();
+
+        // TODO: introduce a switch to load based on OS
+        services.AddTransient<ISystemStatsService, LinuxSystemStatsService>();
+        services.AddTransient<IconService>();
 
         using var serviceProvider = services.BuildServiceProvider();
 
