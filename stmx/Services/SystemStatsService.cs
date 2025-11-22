@@ -1,16 +1,47 @@
 namespace stmx.Services;
 
-class SystemStatsService()
+public class LinuxSystemStatsService : ISystemStatsService
 {
     public SystemStatsServiceOptions Options { get; } = new SystemStatsServiceOptions();
 
-    public Task<int> GetBatteryStatus()
+    public Task<int?> GetBatteryCapacity()
     {
-        return Task.FromResult(50);
+        return Task.FromResult(ReadBatteryCapacityFromSysFile());
     }
 
-    private Task<bool> IsBatteryCharging()
+    protected virtual int? ReadBatteryCapacityFromSysFile()
     {
-        return Task.FromResult(false);
+        try
+        {
+            string batteryCapacity = File.ReadAllText("/sys/class/power_supply/BAT1/capacity");
+            return int.Parse(batteryCapacity);
+        }
+        catch (IOException)
+        {
+            // TODO: print exception if debug is true
+            return null;
+        }
+    }
+
+    public Task<int?> GetBatteryStatus() {
+        return Task.FromResult(ReadBatteryStatusFromSysFile());
+    }
+
+    public int? ReadBatteryStatusFromSysFile()
+    {
+        try
+        {
+            string batteryStatus = File.ReadAllText("/sys/class/power_supply/BAT1/status").Trim('\n', '\r');
+            if (batteryStatus == "Charging" || batteryStatus == "Full")
+                return 1;
+            else if (batteryStatus == "Discharging")
+                return 0;
+            return 2;
+        }
+        catch (IOException)
+        {
+            // TODO: print exception if debug is true
+            return null;
+        }
     }
 }

@@ -1,7 +1,8 @@
 namespace stmx.Services;
 
-class SystemStatsServiceOptions
+public class SystemStatsServiceOptions
 {
     public bool DefaultShowBatteryIcon { get; set; } = false;
+    public bool DefaultShowBatteryChargingIcon { get; set; } = false;
     public bool DefaultShowBatteryPercent { get; set; } = false;
 }
