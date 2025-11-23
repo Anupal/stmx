@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 using stmx.Commands;
 using stmx.Services;
+using stmx.Infrastructure;
 
 namespace stmx;
 
@@ -12,7 +13,15 @@ class Program
     {
         var services = new ServiceCollection();
         services.AddTransient<Command, DummyCommand>();
+        services.AddTransient<Command, BatteryCommand>();
         services.AddTransient<DummyService>();
+
+        // TODO: introduce a switch to load based on OS
+        services.AddTransient<ISystemStatsService, LinuxSystemStatsService>();
+        services.AddTransient<IIconService, IconService>();
+
+        // file system wrapper
+        services.AddSingleton<IFileReader, FileReader>();
 
         using var serviceProvider = services.BuildServiceProvider();
 

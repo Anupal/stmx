@@ -1,7 +1,7 @@
 name: build
 
 on:
-  push:
+  # push:  # commenting out to save actions minutes
   pull_request:
     branches: [ main ]
     paths:
@@ -31,4 +31,7 @@ jobs:
 
     - name: Build
       run: dotnet build --configuration Release --no-restore
+
+    - name: Test
+      run: dotnet test --configuration Release --no-restore
 
