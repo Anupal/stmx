@@ -1,6 +1,6 @@
 namespace stmx.Services;
 
-class IconService()
+class IconService : IIconService
 {
     public IconServiceOptions Options { get; } = new IconServiceOptions();
 

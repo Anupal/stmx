@@ -7,9 +7,9 @@ namespace stmx.Commands;
 class BatteryCommand : Command
 {
     private readonly ISystemStatsService _systemStats;
-    private readonly IconService _icons;
+    private readonly IIconService _icons;
 
-    public BatteryCommand(ISystemStatsService systemStats, IconService icons) : base("battery", "get current battery status")
+    public BatteryCommand(ISystemStatsService systemStats, IIconService icons) : base("battery", "get current battery status")
     {
         _systemStats = systemStats ?? throw new ArgumentNullException(nameof(systemStats));
         _icons = icons ?? throw new ArgumentNullException(nameof(icons));
