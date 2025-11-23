@@ -18,7 +18,7 @@ class Program
 
         // TODO: introduce a switch to load based on OS
         services.AddTransient<ISystemStatsService, LinuxSystemStatsService>();
-        services.AddTransient<IconService>();
+        services.AddTransient<IIconService, IconService>();
 
         // file system wrapper
         services.AddSingleton<IFileReader, FileReader>();
