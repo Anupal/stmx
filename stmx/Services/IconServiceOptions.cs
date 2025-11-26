@@ -1,6 +1,6 @@
 namespace stmx.Services;
 
-class IconServiceOptions
+public class IconServiceOptions
 {
     public List<string> BatteryStatusIcons { get; set; } = new()
     {
@@ -10,4 +10,5 @@ class IconServiceOptions
     {
         "󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹",
     };
+    public string MemoryIcon { get; set; } = "";
 }
