@@ -7,14 +7,23 @@ namespace stmx.Tests
 {
     public class LinuxSystemStatsServiceTests
     {
+        private Mock<IFileReader> _fileReaderMock = null!;
+        private LinuxSystemStatsService _service = null!;
+
+
+        [SetUp]
+        public void Setup()
+        {
+            _fileReaderMock = new Mock<IFileReader>();
+            _service = new LinuxSystemStatsService(_fileReaderMock.Object);
+        }
+
         [Test]
         public async Task TestGetBatteryCapacity_ReturnsParsedValue()
         {
-            var fileReaderMock = new Mock<IFileReader>();
-            fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns("85");
+            _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns("85");
 
-            var service = new LinuxSystemStatsService(fileReaderMock.Object);
-            var result = await service.GetBatteryCapacity();
+            var result = await _service.GetBatteryCapacity();
 
             Assert.That(result, Is.EqualTo(85));
         }
@@ -22,24 +31,20 @@ namespace stmx.Tests
         [Test]
         public async Task TestGetBatteryCapacity_ReturnsNull_WhenIOException()
         {
-            var fileReaderMock = new Mock<IFileReader>();
-            fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Throws(new IOException());
+            _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Throws(new IOException());
 
-            var service = new LinuxSystemStatsService(fileReaderMock.Object);
-            var result = await service.GetBatteryCapacity();
+            var result = await _service.GetBatteryCapacity();
 
-            Assert.Throws<IOException>(() => service.ReadBatteryCapacityFromSysFile());
+            Assert.Throws<IOException>(() => _service.ReadBatteryCapacityFromSysFile());
             Assert.That(result, Is.Null);
         }
 
         [Test]
         public async Task TestGetBatteryStatus_Charging_ReturnsOneWhenCharging()
         {
-            var fileReaderMock = new Mock<IFileReader>();
-            fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns("Charging");
+            _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns("Charging");
 
-            var service = new LinuxSystemStatsService(fileReaderMock.Object);
-            var result = await service.GetBatteryStatus();
+            var result = await _service.GetBatteryStatus();
 
             Assert.That(result, Is.EqualTo(1));
         }
@@ -47,11 +52,9 @@ namespace stmx.Tests
         [Test]
         public async Task TestGetBatteryStatus_Charging_ReturnsOneWhenFull()
         {
-            var fileReaderMock = new Mock<IFileReader>();
-            fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns("Full");
+            _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns("Full");
 
-            var service = new LinuxSystemStatsService(fileReaderMock.Object);
-            var result = await service.GetBatteryStatus();
+            var result = await _service.GetBatteryStatus();
 
             Assert.That(result, Is.EqualTo(1));
         }
@@ -59,11 +62,9 @@ namespace stmx.Tests
         [Test]
         public async Task TestGetBatteryStatus_Discharging_ReturnsZero()
         {
-            var fileReaderMock = new Mock<IFileReader>();
-            fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns("Discharging");
+            _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns("Discharging");
 
-            var service = new LinuxSystemStatsService(fileReaderMock.Object);
-            var result = await service.GetBatteryStatus();
+            var result = await _service.GetBatteryStatus();
 
             Assert.That(result, Is.EqualTo(0));
         }
@@ -71,11 +72,9 @@ namespace stmx.Tests
         [Test]
         public async Task TestGetBatteryStatus_Unknown_ReturnsTwo()
         {
-            var fileReaderMock = new Mock<IFileReader>();
-            fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns("BadValue");
+            _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns("BadValue");
 
-            var service = new LinuxSystemStatsService(fileReaderMock.Object);
-            var result = await service.GetBatteryStatus();
+            var result = await _service.GetBatteryStatus();
 
             Assert.That(result, Is.EqualTo(2));
         }
