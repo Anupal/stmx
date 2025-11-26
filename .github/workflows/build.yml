@@ -1,7 +1,11 @@
 name: build
 
 on:
-  # push:  # commenting out to save actions minutes
+  push:
+    branches: [ main ]
+    paths:
+    - '**.cs'
+    - '**.csproj'
   pull_request:
     branches: [ main ]
     paths:
