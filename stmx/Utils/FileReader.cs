@@ -1,4 +1,4 @@
-namespace stmx.Infrastructure;
+namespace stmx.Utils;
 
 public class FileReader : IFileReader
 {

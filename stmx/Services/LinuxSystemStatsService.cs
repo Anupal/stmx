@@ -1,6 +1,10 @@
-using stmx.Infrastructure;
+using System.Text.RegularExpressions;
+
+using stmx.Utils;
 
 namespace stmx.Services;
+
+
 
 public class LinuxSystemStatsService : ISystemStatsService
 {
@@ -50,5 +54,102 @@ public class LinuxSystemStatsService : ISystemStatsService
         else if (batteryStatus == "Discharging")
             return 0;
         return 2;
+    }
+
+    public async Task<string?> GetMemoryUsageNumber(MemoryUnits unit)
+    {
+        try
+        {
+            MemoryUsageData data = ReadMemoryUsageFromProcFile().ConvertTo(unit);
+            return $"{data.Used} / {data.Total}";
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+    }
+
+    public async Task<double?> GetMemoryUsagePercent(MemoryUnits unit)
+    {
+        try
+        {
+            MemoryUsageData data = ReadMemoryUsageFromProcFile().ConvertTo(unit);
+            double percent = ((double)data.Used / data.Total) * 100;
+            return Math.Round(percent, 2);
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+    }
+
+    // This data is always in KiloBytes
+    public MemoryUsageData ReadMemoryUsageFromProcFile()
+    {
+        string totalMemoryPattern = @"MemTotal:\s+(\d+)";
+        string availableMemoryPattern = @"MemAvailable:\s+(\d+)";
+
+        string memoryInfo = _fileReader.ReadAllText("/proc/meminfo");
+
+        long totalMemory = long.Parse(Regex.Matches(memoryInfo, totalMemoryPattern)[0].Groups[1].Value);
+        long availableMemory = long.Parse(Regex.Matches(memoryInfo, availableMemoryPattern)[0].Groups[1].Value);
+
+        return new MemoryUsageData(totalMemory, availableMemory, MemoryUnits.KiloBytes);
+    }
+}
+
+
+
+public class MemoryUsageData
+{
+    public long Total { set; get; }
+    public long Available { set; get; }
+    public long Used { set; get; }
+    public MemoryUnits Unit { set; get; }
+
+    public MemoryUsageData(long total, long available, MemoryUnits unit)
+    {
+        Total = total;
+        Available = available;
+        Used = total - available;
+        Unit = unit;
+    }
+
+    public MemoryUsageData ConvertTo(MemoryUnits targetUnit)
+    {
+        return new MemoryUsageData(
+            ConvertValue(Total, Unit, targetUnit),
+            ConvertValue(Available, Unit, targetUnit),
+            targetUnit
+        );
+    }
+
+    private static long ConvertValue(long value, MemoryUnits from, MemoryUnits to)
+    {
+        double bytes = value * UnitToBytesFactor(from);     // → convert to bytes
+        double result = bytes / UnitToBytesFactor(to);      // → convert from bytes to target
+
+        return (long)Math.Round(result, 2);
+    }
+
+    private static double UnitToBytesFactor(MemoryUnits unit)
+    {
+        return unit switch
+        {
+            MemoryUnits.Bytes     => 1,
+            MemoryUnits.KiloBytes => 1_000,
+            MemoryUnits.KibiBytes => 1_024,
+
+            MemoryUnits.MegaBytes => 1_000_000,
+            MemoryUnits.MibiBytes => 1_048_576,
+
+            MemoryUnits.GigaBytes => 1_000_000_000,
+            MemoryUnits.GibiBytes => 1_073_741_824,
+
+            MemoryUnits.TeraBytes => 1_000_000_000_000,
+            MemoryUnits.TibiBytes => 1_099_511_627_776,
+
+            _ => throw new ArgumentOutOfRangeException(nameof(unit))
+        };
     }
 }

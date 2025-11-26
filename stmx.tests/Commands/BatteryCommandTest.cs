@@ -1,8 +1,4 @@
-using NUnit.Framework;
 using Moq;
-using System;
-using System.IO;
-using System.Threading.Tasks;
 
 using stmx.Commands;
 using stmx.Services;
