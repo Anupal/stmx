@@ -1,7 +1,7 @@
 using Moq;
 
 using stmx.Services;
-using stmx.Infrastructure;
+using stmx.Utils;
 
 namespace stmx.Tests
 {
