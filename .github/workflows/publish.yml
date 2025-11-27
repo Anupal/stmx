@@ -1,0 +1,66 @@
+name: publish
+
+on:
+  push:
+    tags:
+      - '[0-9]*.[0-9]*.[0-9]*'
+      - '[0-9]*.[0-9]*.[0-9]*-*'
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  APP_NAME: 'stmx'
+  ARCH: 'amd64'
+  PUBLISH_DIR: 'publish'
+  DEB_ROOT: 'deb_build/stmx'
+  VERSION: ${{ github.ref_name }}
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Install dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Test
+      run: dotnet test --configuration Release --no-restore
+
+    - name: Publish Binary
+      run: dotnet publish ${APP_NAME}/${APP_NAME}.csproj --configuration Release -r linux-x64 -o ${PUBLISH_DIR}
+
+    - name: Publish Debian Package
+      run: bash scripts/build_deb.sh
+
+    - name: Prepare release files
+      run: |
+        mkdir -p release
+        cp ${PUBLISH_DIR}/${APP_NAME} release/${APP_NAME}-${ARCH}-${VERSION}
+        cp ${APP_NAME}.deb release/${APP_NAME}-${ARCH}-${VERSION}.deb
+
+    - name: Create Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ env.VERSION }}
+      run: |
+        gh release create "$tag" \
+            --repo="$GITHUB_REPOSITORY" \
+            --title="${APP_NAME} ${tag}" \
+            --generate-notes \
+            release/*
+
