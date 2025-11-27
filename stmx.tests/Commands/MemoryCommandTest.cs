@@ -31,7 +31,7 @@ public class MemoryCommandTests
 
         await cmd.ExecuteAsync(showIcon: true, showPercent: true, unit: MemoryUnits.MibiBytes);
 
-        Assert.That(consoleOut.ToString(), Is.EqualTo("MEM_ICON 75%"));
+        Assert.That(consoleOut.ToString(), Is.EqualTo("MEM_ICON 75.00%"));
     }
 
     [Test]
@@ -93,7 +93,7 @@ public class MemoryCommandTests
             unit: opts.DefaultMemoryUnit
         );
 
-        Assert.That(consoleOut.ToString(), Is.EqualTo("MEM_ICON 60%"));
+        Assert.That(consoleOut.ToString(), Is.EqualTo("MEM_ICON 60.00%"));
     }
 
     [Test]

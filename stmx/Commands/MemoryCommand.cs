@@ -46,7 +46,7 @@ class MemoryCommand : Command
         if (showPercent)
         {
             var memoryPercent = await _systemStats.GetMemoryUsagePercent(unit);
-            Console.Write($"{memoryIcon}{memoryPercent}%");
+            Console.Write($"{memoryIcon}{memoryPercent:F2}%");
         }
         else
         {
