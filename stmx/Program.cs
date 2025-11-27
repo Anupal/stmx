@@ -15,6 +15,7 @@ class Program
         services.AddTransient<Command, DummyCommand>();
         services.AddTransient<Command, BatteryCommand>();
         services.AddTransient<Command, MemoryCommand>();
+        services.AddTransient<Command, CpuCommand>();
         services.AddTransient<DummyService>();
 
         // TODO: introduce a switch to load based on OS

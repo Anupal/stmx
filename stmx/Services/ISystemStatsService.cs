@@ -8,5 +8,6 @@ public interface ISystemStatsService
     Task<int?> GetBatteryStatus();
     Task<string?> GetMemoryUsageNumber(MemoryUnits unit);
     Task<double?> GetMemoryUsagePercent(MemoryUnits unit);
+    Task<double?> GetCpuUsagePercent();
     SystemStatsServiceOptions Options { get; }
 }
