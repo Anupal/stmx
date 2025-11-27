@@ -482,3 +482,7 @@ $RECYCLE.BIN/
 
 bin/
 obj/
+deb_build/
+rpm_build/
+*.deb
+*.rpm
