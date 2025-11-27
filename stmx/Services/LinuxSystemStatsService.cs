@@ -4,8 +4,6 @@ using stmx.Utils;
 
 namespace stmx.Services;
 
-
-
 public class LinuxSystemStatsService : ISystemStatsService
 {
     private readonly IFileReader _fileReader;
@@ -96,9 +94,83 @@ public class LinuxSystemStatsService : ISystemStatsService
 
         return new MemoryUsageData(totalMemory, availableMemory, MemoryUnits.KiloBytes);
     }
+
+    public async Task<double?> GetCpuUsagePercent()
+    {
+        int delayMs = 100;
+
+        try
+        {
+            var oldValue = ReadCpuUsageFromProcFile();
+            await Task.Delay(delayMs);
+            var newValue = ReadCpuUsageFromProcFile();
+
+            // compute cpu usage
+            long idleOld = oldValue.Idle + oldValue.IOWait;
+            long idleNew = newValue.Idle + newValue.IOWait;
+
+            long nonIdleOld = oldValue.User + oldValue.Nice + oldValue.System +
+                              oldValue.IRQ + oldValue.SoftIRQ + oldValue.Steal;
+
+            long nonIdleNew = newValue.User + newValue.Nice + newValue.System +
+                              newValue.IRQ + newValue.SoftIRQ + newValue.Steal;
+
+            long totalOld = idleOld + nonIdleOld;
+            long totalNew = idleNew + nonIdleNew;
+
+            long totalDiff = totalNew - totalOld;
+            long idleDiff = idleNew - idleOld;
+
+            // avoid div by 0
+            if (totalDiff == 0)
+                return 0.0;
+
+            var percent = (double)(totalDiff - idleDiff) / totalDiff * 100.0;
+            return Math.Round(percent, 2);
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+    }
+
+    public CpuTimesData ReadCpuUsageFromProcFile()
+    {
+        string cpuTimesPattern = @"cpu\s+(\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+)";
+
+        string cpuInfo = _fileReader.ReadAllText("/proc/stat");
+
+        var values = Regex.Matches(cpuInfo, cpuTimesPattern)[0].Groups;
+
+        return new CpuTimesData
+        {
+            User = long.Parse(values[1].Value),
+            Nice = long.Parse(values[2].Value),
+            System = long.Parse(values[3].Value),
+            Idle = long.Parse(values[4].Value),
+            IOWait = long.Parse(values[5].Value),
+            IRQ = long.Parse(values[6].Value),
+            SoftIRQ = long.Parse(values[7].Value),
+            Steal = long.Parse(values[8].Value),
+            Guest = long.Parse(values[9].Value),
+            GuestNice = long.Parse(values[10].Value),
+        };
+    }
 }
 
-
+public class CpuTimesData
+{
+    public long User { set; get; }
+    public long Nice { set; get; }
+    public long System { set; get; }
+    public long Idle { set; get; }
+    public long IOWait {set; get; }
+    public long IRQ { set; get; }
+    public long SoftIRQ { set; get; }
+    public long Steal { get; set; }
+    public long Guest { get; set; }
+    public long GuestNice { get; set; }
+}
 
 public class MemoryUsageData
 {

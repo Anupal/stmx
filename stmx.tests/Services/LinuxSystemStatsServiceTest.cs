@@ -162,5 +162,73 @@ MemAvailable:   500 kB
 
         Assert.That(result, Is.Null);
     }
+
+    [Test]
+    public void ReadCpuUsageFromProcFile_ParsesCorrectly()
+    {
+        string mockCpuStat = "cpu  100 200 300 400 50 60 70 80 90 100\n";
+
+        _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>()))
+            .Returns(mockCpuStat);
+
+        var cpu = _service.ReadCpuUsageFromProcFile();
+
+        Assert.That(cpu.User, Is.EqualTo(100));
+        Assert.That(cpu.Nice, Is.EqualTo(200));
+        Assert.That(cpu.System, Is.EqualTo(300));
+        Assert.That(cpu.Idle, Is.EqualTo(400));
+        Assert.That(cpu.IOWait, Is.EqualTo(50));
+        Assert.That(cpu.IRQ, Is.EqualTo(60));
+        Assert.That(cpu.SoftIRQ, Is.EqualTo(70));
+        Assert.That(cpu.Steal, Is.EqualTo(80));
+        Assert.That(cpu.Guest, Is.EqualTo(90));
+        Assert.That(cpu.GuestNice, Is.EqualTo(100));
+    }
+
+    [Test]
+    public async Task GetCpuUsagePercent_ComputesCorrectly()
+    {
+        // First sample
+        string stat1 = "cpu  100 200 300 400 50 60 70 80 90 100\n";
+
+        // Second sample slightly increased after delay
+        string stat2 = "cpu  110 210 310 420 55 65 75 85 95 105\n";
+
+        _fileReaderMock.SetupSequence(f => f.ReadAllText(It.IsAny<string>()))
+            .Returns(stat1)
+            .Returns(stat2);
+
+        double? result = await _service.GetCpuUsagePercent();
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result, Is.GreaterThan(0));
+        Assert.That(result, Is.LessThanOrEqualTo(100));
+    }
+
+    [Test]
+    public async Task GetCpuUsagePercent_ReturnsZero_WhenNoTimePasses()
+    {
+        // No difference between samples: totalDiff = 0
+        string stat = "cpu  100 200 300 400 50 60 70 80 90 100\n";
+
+        _fileReaderMock.SetupSequence(f => f.ReadAllText(It.IsAny<string>()))
+            .Returns(stat)
+            .Returns(stat);
+
+        double? percent = await _service.GetCpuUsagePercent();
+
+        Assert.That(percent, Is.EqualTo(0.0));
+    }
+
+    [Test]
+    public async Task GetCpuUsagePercent_ReturnsNull_OnIOException()
+    {
+        _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>()))
+            .Throws(new IOException());
+
+        var result = await _service.GetCpuUsagePercent();
+
+        Assert.That(result, Is.Null);
+    }
 }
 

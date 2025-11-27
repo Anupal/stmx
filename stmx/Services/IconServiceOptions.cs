@@ -11,4 +11,5 @@ public class IconServiceOptions
         "󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹",
     };
     public string MemoryIcon { get; set; } = "";
+    public string CpuIcon { get; set; } = "";
 }
