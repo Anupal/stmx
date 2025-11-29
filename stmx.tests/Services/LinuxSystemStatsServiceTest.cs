@@ -8,6 +8,7 @@ namespace stmx.Tests;
 public class LinuxSystemStatsServiceTests
 {
     private Mock<IFileReader> _fileReaderMock = null!;
+    private Mock<IFileSystem> _fileSystemMock = null!;
     private LinuxSystemStatsService _service = null!;
 
 
@@ -15,7 +16,15 @@ public class LinuxSystemStatsServiceTests
     public void Setup()
     {
         _fileReaderMock = new Mock<IFileReader>();
-        _service = new LinuxSystemStatsService(_fileReaderMock.Object);
+        _fileSystemMock = new Mock<IFileSystem>();
+
+        _service = new LinuxSystemStatsService(_fileReaderMock.Object, _fileSystemMock.Object);
+
+        _fileSystemMock.Setup(fs => fs.DirectoryExists("/sys/class/power_supply"))
+                       .Returns(true);
+
+        _fileSystemMock.Setup(fs => fs.GetDirectories("/sys/class/power_supply"))
+                       .Returns(new[] { "/sys/class/power_supply/BAT0" });
     }
 
     [Test]
@@ -77,6 +86,32 @@ public class LinuxSystemStatsServiceTests
         var result = await _service.GetBatteryStatus();
 
         Assert.That(result, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void TestGetBatterySysDirectory_ReturnsBAT1IfAvailable()
+    {
+        _fileSystemMock.Setup(fs => fs.GetDirectories("/sys/class/power_supply"))
+                       .Returns(new[]
+                       {
+                           "/sys/class/power_supply/AC",
+                           "/sys/class/power_supply/BAT1"
+                       });
+
+        var dir = _service.GetBatterySysDirectory();
+
+        Assert.That(dir, Is.EqualTo("BAT1"));
+    }
+
+    [Test]
+    public void TestGetBatterySysDirectory_ReturnsNullWhenNoBattery()
+    {
+        _fileSystemMock.Setup(fs => fs.GetDirectories("/sys/class/power_supply"))
+                       .Returns(Array.Empty<string>());
+
+        var dir = _service.GetBatterySysDirectory();
+
+        Assert.That(dir, Is.Null);
     }
 
     [Test]

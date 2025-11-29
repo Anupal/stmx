@@ -24,6 +24,7 @@ class Program
 
         // file system wrapper
         services.AddSingleton<IFileReader, FileReader>();
+        services.AddSingleton<IFileSystem, FileSystem>();
 
         using var serviceProvider = services.BuildServiceProvider();
 

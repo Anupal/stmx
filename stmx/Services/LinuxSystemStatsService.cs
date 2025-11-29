@@ -7,10 +7,12 @@ namespace stmx.Services;
 public class LinuxSystemStatsService : ISystemStatsService
 {
     private readonly IFileReader _fileReader;
+    private readonly IFileSystem _fileSystem;
 
-    public LinuxSystemStatsService(IFileReader fileReader)
+    public LinuxSystemStatsService(IFileReader fileReader, IFileSystem fileSystem)
     {
         _fileReader = fileReader;
+        _fileSystem = fileSystem;
     }
 
     public SystemStatsServiceOptions Options { get; } = new SystemStatsServiceOptions();
@@ -29,7 +31,11 @@ public class LinuxSystemStatsService : ISystemStatsService
 
     public int? ReadBatteryCapacityFromSysFile()
     {
-        string batteryCapacity = _fileReader.ReadAllText("/sys/class/power_supply/BAT1/capacity");
+        string? batteryDir = GetBatterySysDirectory();
+        if (batteryDir == null)
+            throw new IOException("No directory found for battery in /sys/class/power_supply");
+
+        string batteryCapacity = _fileReader.ReadAllText($"/sys/class/power_supply/{batteryDir}/capacity");
         return int.Parse(batteryCapacity);
     }
 
@@ -46,12 +52,30 @@ public class LinuxSystemStatsService : ISystemStatsService
 
     public int? ReadBatteryStatusFromSysFile()
     {
-        string batteryStatus = _fileReader.ReadAllText("/sys/class/power_supply/BAT1/status").Trim('\n', '\r');
+        string? batteryDir = GetBatterySysDirectory();
+        if (batteryDir == null)
+            throw new IOException("No directory found for battery in /sys/class/power_supply");
+
+        string batteryStatus = _fileReader.ReadAllText($"/sys/class/power_supply/{batteryDir}/status").Trim('\n', '\r');
         if (batteryStatus == "Charging" || batteryStatus == "Full")
             return 1;
         else if (batteryStatus == "Discharging")
             return 0;
         return 2;
+    }
+
+    public string? GetBatterySysDirectory()
+    {
+        var basePath = "/sys/class/power_supply";
+        if (!_fileSystem.DirectoryExists(basePath))
+            return null;
+
+        var dirs = _fileSystem.GetDirectories(basePath)
+                        .Select(Path.GetFileName)
+                        .Where(name => name != null && name.StartsWith("BAT", StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
+        return dirs.FirstOrDefault();
     }
 
     public async Task<string?> GetMemoryUsageNumber(MemoryUnits unit)
