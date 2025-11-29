@@ -79,9 +79,15 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         tag: ${{ env.VERSION }}
       run: |
-        gh release create "$tag" \
-          --repo="$GITHUB_REPOSITORY" \
-          --title="${APP_NAME} ${tag}" \
-          --generate-notes \
-          release/*
+        if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          echo "Release exists → uploading assets"
+          gh release upload "$tag" release/* --repo "$GITHUB_REPOSITORY" --clobber
+        else
+          echo "Creating new release"
+          gh release create "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "${APP_NAME} ${tag}" \
+            --generate-notes \
+            release/*
+        fi
 
