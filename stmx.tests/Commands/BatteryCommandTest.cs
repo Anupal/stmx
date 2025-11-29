@@ -46,7 +46,7 @@ public class BatteryCommandTests
 
         await cmd.ExecuteAsync(showIcon: false, showStatusIcon: false, showPercent: false);
 
-        Assert.That(consoleOut.ToString(), Is.EqualTo(" "));
+        Assert.That(consoleOut.ToString(), Is.EqualTo(""));
     }
 
     [Test]

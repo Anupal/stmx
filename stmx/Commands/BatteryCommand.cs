@@ -52,10 +52,9 @@ class BatteryCommand : Command
         if (batteryStatus.HasValue)
             batteryStatusIcon = showStatusIcon ? await _icons.GetBatteryStatusIcon(batteryStatus.Value) : "";
 
-
-
+        string spacing = showIcon || showStatusIcon ? " ": "";
         Console.Write(
-            $"{batteryCapacityIcon}{batteryStatusIcon} {batteryCapacity}{percentIcon}"
+            $"{batteryCapacityIcon}{batteryStatusIcon}{spacing}{batteryCapacity}{percentIcon}"
         );
     }
 }
