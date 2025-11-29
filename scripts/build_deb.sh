@@ -15,7 +15,7 @@ Package: ${APP_NAME}
 Version: ${VERSION}
 Section: utils
 Priority: optional
-Architecture: ${ARCH}
+Architecture: ${DEB_ARCH}
 Maintainer: $(whoami)
 Description: ${APP_NAME} .NET application
  Automatically generated .deb package.
