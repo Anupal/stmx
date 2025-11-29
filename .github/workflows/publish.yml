@@ -9,9 +9,7 @@ on:
 env:
   DOTNET_VERSION: '10.0.x'
   APP_NAME: 'stmx'
-  ARCH: 'amd64'
   PUBLISH_DIR: 'publish'
-  DEB_ROOT: 'deb_build/stmx'
   VERSION: ${{ github.ref_name }}
 
 jobs:
@@ -20,14 +18,37 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      id-token: write
       contents: write
+      id-token: write
+
+    # handle different linux architectures
+    strategy:
+      matrix:
+        arch: [amd64, arm64, x86]
+        include:
+          - arch: amd64
+            dotnet_rid: linux-x64
+            deb_arch: amd64
+
+          - arch: arm64
+            dotnet_rid: linux-arm64
+            deb_arch: arm64
+
+          - arch: x86
+            dotnet_rid: linux-x86
+            deb_arch: i386
+
+    env:
+      ARCH: ${{ matrix.arch }}
+      DOTNET_RID: ${{ matrix.dotnet_rid }}
+      DEB_ARCH: ${{ matrix.deb_arch }}
+      DEB_ROOT: deb_build/stmx-${{ matrix.arch }}
 
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Setup .NET Core
+    - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
@@ -42,25 +63,29 @@ jobs:
       run: dotnet test --configuration Release --no-restore
 
     - name: Publish Binary
-      run: dotnet publish ${APP_NAME}/${APP_NAME}.csproj --configuration Release -r linux-x64 -o ${PUBLISH_DIR}
+      run: |
+        dotnet publish ${APP_NAME}/${APP_NAME}.csproj \
+          --configuration Release \
+          -r ${DOTNET_RID} \
+          -o ${PUBLISH_DIR}
 
-    - name: Publish Debian Package
+    - name: Build Debian Package
       run: bash scripts/build_deb.sh
 
-    - name: Prepare release files
+    - name: Prepare Release Files
       run: |
         mkdir -p release
         cp ${PUBLISH_DIR}/${APP_NAME} release/${APP_NAME}-${ARCH}-${VERSION}
         cp ${APP_NAME}.deb release/${APP_NAME}-${ARCH}-${VERSION}.deb
 
-    - name: Create Release
+    - name: Upload to GitHub Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         tag: ${{ env.VERSION }}
       run: |
         gh release create "$tag" \
-            --repo="$GITHUB_REPOSITORY" \
-            --title="${APP_NAME} ${tag}" \
-            --generate-notes \
-            release/*
+          --repo="$GITHUB_REPOSITORY" \
+          --title="${APP_NAME} ${tag}" \
+          --generate-notes \
+          release/*
 
