@@ -1,0 +1,84 @@
+name: publish
+
+on:
+  push:
+    tags:
+      - '[0-9]*.[0-9]*.[0-9]*'
+      - '[0-9]*.[0-9]*.[0-9]*-*'
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  APP_NAME: 'stmx'
+  PUBLISH_DIR: 'publish'
+  VERSION: ${{ github.ref_name }}
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      id-token: write
+
+    # handle different linux architectures
+    strategy:
+      matrix:
+        arch: [linux-amd64, linux-arm64]
+        include:
+          - arch: linux-amd64
+            dotnet_rid: linux-x64
+            deb_arch: amd64
+
+          - arch: linux-arm64
+            dotnet_rid: linux-arm64
+            deb_arch: arm64
+
+    env:
+      ARCH: ${{ matrix.arch }}
+      DOTNET_RID: ${{ matrix.dotnet_rid }}
+      DEB_ARCH: ${{ matrix.deb_arch }}
+      DEB_ROOT: deb_build/stmx-${{ matrix.arch }}
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Publish Binary
+      run: |
+        dotnet publish ${APP_NAME}/${APP_NAME}.csproj \
+          --configuration Release \
+          -r ${DOTNET_RID} \
+          -o ${PUBLISH_DIR}
+
+    - name: Build Debian Package
+      run: bash scripts/build_deb.sh
+
+    - name: Prepare Release Files
+      run: |
+        mkdir -p release
+        cp ${PUBLISH_DIR}/${APP_NAME} release/${APP_NAME}-${ARCH}-${VERSION}
+        cp ${APP_NAME}.deb release/${APP_NAME}-${ARCH}-${VERSION}.deb
+
+    - name: Upload to GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ env.VERSION }}
+      run: |
+        if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          echo "Release exists → uploading assets"
+          gh release upload "$tag" release/* --repo "$GITHUB_REPOSITORY" --clobber
+        else
+          echo "Creating new release"
+          gh release create "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "${APP_NAME} ${tag}" \
+            --generate-notes \
+            release/*
+        fi
+
