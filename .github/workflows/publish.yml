@@ -24,13 +24,13 @@ jobs:
     # handle different linux architectures
     strategy:
       matrix:
-        arch: [amd64, arm64]
+        arch: [linux-amd64, linux-arm64]
         include:
-          - arch: amd64
+          - arch: linux-amd64
             dotnet_rid: linux-x64
             deb_arch: amd64
 
-          - arch: arm64
+          - arch: linux-arm64
             dotnet_rid: linux-arm64
             deb_arch: arm64
 
