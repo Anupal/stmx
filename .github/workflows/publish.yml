@@ -24,7 +24,7 @@ jobs:
     # handle different linux architectures
     strategy:
       matrix:
-        arch: [amd64, arm64, x86]
+        arch: [amd64, arm64]
         include:
           - arch: amd64
             dotnet_rid: linux-x64
@@ -33,10 +33,6 @@ jobs:
           - arch: arm64
             dotnet_rid: linux-arm64
             deb_arch: arm64
-
-          - arch: x86
-            dotnet_rid: linux-x86
-            deb_arch: i386
 
     env:
       ARCH: ${{ matrix.arch }}
