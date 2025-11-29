@@ -49,15 +49,6 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    - name: Install dependencies
-      run: dotnet restore
-
-    - name: Build
-      run: dotnet build --configuration Release --no-restore
-
-    - name: Test
-      run: dotnet test --configuration Release --no-restore
-
     - name: Publish Binary
       run: |
         dotnet publish ${APP_NAME}/${APP_NAME}.csproj \
