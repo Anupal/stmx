@@ -44,12 +44,18 @@ $ stmx battery
 ```
 
 ### Examples - Tmux
-I use [o0th/tmux-nova](https://github.com/o0th/tmux-nova) with following config to get an informative Tmux status bar.
+I use following config to get an informative Tmux status bar.
 ```conf
-set -g @plugin 'o0th/tmux-nova'
+FG="#ffffff"
+BG="#005f87"
 
-set -g @nova-segment-custom '#(stmx battery -i -p -c) | #(stmx memory -i -p) | #(stmx cpu -i) | %h %d %H:%M'
-set -g @nova-segments-0-right "custom"
+set-option -g status-right "\
+#[fg=${FG},bg=${BG}] \
+#(stmx battery -i -p -c) | \
+#(stmx memory -i -p) | \
+#(stmx cpu -i) | \
+%h %d %H:%M "
+set -g status-right-length 100
 ```
 
 ![Tmux screenshot](/images/tmux-status-bar-screenshot.png)
