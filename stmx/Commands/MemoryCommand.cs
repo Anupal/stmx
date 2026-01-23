@@ -15,9 +15,10 @@ class MemoryCommand : Command
         _systemStats = systemStats ?? throw new ArgumentNullException(nameof(systemStats));
         _icons = icons ?? throw new ArgumentNullException(nameof(icons));
 
-        var showIconOption = new Option<bool>("--icon", ["-i"]);
-        showIconOption.Description = "whether to show icon";
-        showIconOption.DefaultValueFactory = _ => _systemStats.Options.DefaultShowMemoryIcon;
+        var showIconOption = new Option<string>("--icon", ["-i"]);
+        showIconOption.Description = "whether to show icon (optionally provide custom icon)";
+        // this allows users to pass one or more values
+        showIconOption.Arity = ArgumentArity.ZeroOrOne;
         Add(showIconOption);
 
         var showPercentOption = new Option<bool>("--percent", ["-p"]);
@@ -32,16 +33,28 @@ class MemoryCommand : Command
 
         SetAction(async (parseResult, cancellationToken) =>
         {
-            var showIcon = parseResult.GetValue(showIconOption);
+            var iconValue = parseResult.GetValue(showIconOption);
             var showPercent = parseResult.GetValue(showPercentOption);
             var unit = parseResult.GetValue(unitOption);
-            await ExecuteAsync(showIcon!, showPercent!, unit!);
+            await ExecuteAsync(
+                parseResult.GetResult(showIconOption) is not null,
+                iconValue!,
+                showPercent!,
+                unit!
+            );
         });
     }
 
-    public async Task ExecuteAsync(bool showIcon, bool showPercent, MemoryUnits unit)
+    public async Task ExecuteAsync(bool showIcon, string iconValue, bool showPercent, MemoryUnits unit)
     {
-        string memoryIcon = showIcon ? $"{_icons.Options.MemoryIcon} " : "";
+        string memoryIcon = "";
+        // if -i was passed
+        if (showIcon)
+        {
+            memoryIcon = string.IsNullOrEmpty(iconValue)
+                ? $"{_icons.Options.MemoryIcon} "
+                : $"{iconValue} "; // if a custom icon was also passed
+        }
 
         if (showPercent)
         {
