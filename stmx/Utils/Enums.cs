@@ -2,6 +2,7 @@ namespace stmx.Utils;
 
 public enum MemoryUnits
 {
+    Percent = 0,
     Bytes = 1,
     KiloBytes = 2,
     KibiBytes = 3,

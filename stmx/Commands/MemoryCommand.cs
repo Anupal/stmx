@@ -15,16 +15,16 @@ class MemoryCommand : Command
         _systemStats = systemStats ?? throw new ArgumentNullException(nameof(systemStats));
         _icons = icons ?? throw new ArgumentNullException(nameof(icons));
 
-        var showIconOption = new Option<string>("--icon", ["-i"]);
-        showIconOption.Description = "whether to show icon (optionally provide custom icon)";
+        var showIconOption = new Option<string>("--show-icon", ["-i"]);
+        showIconOption.Description = "show icon (optionally provide custom icon)";
         // this allows users to pass one or more values
         showIconOption.Arity = ArgumentArity.ZeroOrOne;
         Add(showIconOption);
 
-        var showPercentOption = new Option<bool>("--percent", ["-p"]);
-        showPercentOption.Description = "whether to show as a percentage";
-        showPercentOption.DefaultValueFactory = _ => _systemStats.Options.DefaultShowBatteryPercent;
-        Add(showPercentOption);
+        var showPercentIconOption = new Option<string>("--show-percent", ["-p"]);
+        showPercentIconOption.Description = "show percent icon (optionally provide custom icon)";
+        showPercentIconOption.Arity = ArgumentArity.ZeroOrOne;
+        Add(showPercentIconOption);
 
         var unitOption = new Option<MemoryUnits>("--unit", "-u");
         unitOption.Description = "Select the memory unit for display";
@@ -34,20 +34,22 @@ class MemoryCommand : Command
         SetAction(async (parseResult, cancellationToken) =>
         {
             var iconValue = parseResult.GetValue(showIconOption);
-            var showPercent = parseResult.GetValue(showPercentOption);
+            var percentValue = parseResult.GetValue(showPercentIconOption);
             var unit = parseResult.GetValue(unitOption);
             await ExecuteAsync(
                 parseResult.GetResult(showIconOption) is not null,
                 iconValue!,
-                showPercent!,
+                parseResult.GetResult(showPercentIconOption) is not null,
+                percentValue!,
                 unit!
             );
         });
     }
 
-    public async Task ExecuteAsync(bool showIcon, string iconValue, bool showPercent, MemoryUnits unit)
+    public async Task ExecuteAsync(bool showIcon, string iconValue, bool showPercentIcon,
+            string percentIconValue, MemoryUnits unit)
     {
-        string memoryIcon = "";
+        string memoryIcon = "", percentIcon = "";
         // if -i was passed
         if (showIcon)
         {
@@ -56,10 +58,16 @@ class MemoryCommand : Command
                 : $"{iconValue} "; // if a custom icon was also passed
         }
 
-        if (showPercent)
+        if (unit == MemoryUnits.Percent)
         {
-            var memoryPercent = await _systemStats.GetMemoryUsagePercent(unit);
-            Console.Write($"{memoryIcon}{memoryPercent:F2}%");
+            var memoryPercent = await _systemStats.GetMemoryUsagePercent();
+            if (showPercentIcon)
+            {
+                percentIcon = string.IsNullOrEmpty(percentIconValue)
+                    ? _icons.Options.PercentIcon
+                    : percentIconValue;
+            }
+            Console.Write($"{memoryIcon}{memoryPercent:F2}{percentIcon}");
         }
         else
         {

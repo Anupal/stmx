@@ -91,11 +91,11 @@ public class LinuxSystemStatsService : ISystemStatsService
         }
     }
 
-    public async Task<double?> GetMemoryUsagePercent(MemoryUnits unit)
+    public async Task<double?> GetMemoryUsagePercent()
     {
         try
         {
-            MemoryUsageData data = ReadMemoryUsageFromProcFile().ConvertTo(unit);
+            MemoryUsageData data = ReadMemoryUsageFromProcFile();
             double percent = ((double)data.Used / data.Total) * 100;
             return Math.Round(percent, 2);
         }
