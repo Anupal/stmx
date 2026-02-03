@@ -14,38 +14,53 @@ class BatteryCommand : Command
         _systemStats = systemStats ?? throw new ArgumentNullException(nameof(systemStats));
         _icons = icons ?? throw new ArgumentNullException(nameof(icons));
 
-        var showIconOption = new Option<bool>("--icon", ["-i"]);
-        showIconOption.Description = "whether to show icon";
+        var showIconOption = new Option<bool>("--show-icon", ["-i"]);
+        showIconOption.Description = "show battery capacity icon";
         showIconOption.DefaultValueFactory = _ => _systemStats.Options.DefaultShowBatteryIcon;
         Add(showIconOption);
 
-        var showChargingIconOption = new Option<bool>("--charging-icon", ["-c"]);
-        showChargingIconOption.Description = "whether to show charging icon";
-        showChargingIconOption.DefaultValueFactory = _ => _systemStats.Options.DefaultShowBatteryChargingIcon;
-        Add(showChargingIconOption);
+        var showStatusIconOption = new Option<bool>("--show-status-icon", ["-s"]);
+        showStatusIconOption.Description = "show battery status icon";
+        showStatusIconOption.DefaultValueFactory = _ => _systemStats.Options.DefaultShowBatteryChargingIcon;
+        Add(showStatusIconOption);
 
-        var showPercentOption = new Option<bool>("--percent", ["-p"]);
-        showPercentOption.Description = "whether to percent symbol";
-        showPercentOption.DefaultValueFactory = _ => _systemStats.Options.DefaultShowBatteryPercent;
-        Add(showPercentOption);
+        var showPercentIconOption = new Option<string>("--show-percent", ["-p"]);
+        showPercentIconOption.Description = "show percent icon (optionally provide a custom icon)";
+        showPercentIconOption.Arity = ArgumentArity.ZeroOrOne;
+        Add(showPercentIconOption);
 
         SetAction(async (parseResult, cancellationToken) =>
         {
             var showIcon = parseResult.GetValue(showIconOption);
-            var showChargingIcon = parseResult.GetValue(showChargingIconOption);
-            var showPercent = parseResult.GetValue(showPercentOption);
-            await ExecuteAsync(showIcon!, showChargingIcon!, showPercent!);
+            var showStatusIcon = parseResult.GetValue(showStatusIconOption);
+            var percentIconValue = parseResult.GetValue(showPercentIconOption);
+            await ExecuteAsync(
+                showIcon!,
+                showStatusIcon!,
+                parseResult.GetResult(showPercentIconOption) is not null,
+                percentIconValue!
+            );
         });
     }
 
-    public async Task ExecuteAsync(bool showIcon, bool showStatusIcon, bool showPercent)
+    public async Task ExecuteAsync(
+            bool showIcon,
+            bool showStatusIcon,
+            bool showPercentIcon,
+            string percentIconValue)
     {
         string batteryCapacityIcon = "", batteryStatusIcon = "", percentIcon = "";
 
         var batteryCapacity = await _systemStats.GetBatteryCapacity();
-        if (batteryCapacity.HasValue) {
+        if (batteryCapacity.HasValue)
+        {
             batteryCapacityIcon = showIcon ? await _icons.GetBatteryCapacityIcon(batteryCapacity.Value) : "";
-            percentIcon = showPercent ? "%" : "";
+            if (showPercentIcon)
+            {
+                percentIcon = string.IsNullOrEmpty(percentIconValue)
+                    ? _icons.Options.PercentIcon
+                    : percentIconValue;
+            }
         }
 
         var batteryStatus = await _systemStats.GetBatteryStatus();
