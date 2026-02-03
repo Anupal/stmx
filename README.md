@@ -19,7 +19,7 @@ Simple commandline utility to get systems stats.
 #### CPU
 ```bash
 # print cpu usage with icons
-$ cpu -i -p
+$ stmx cpu -i -p
  0.79
 
 # use custom CPU icon
@@ -45,9 +45,9 @@ $ stmx memory -i 'M' -p '%'
 M 19.35%
 
 # use other memory units
-❯ stmx memory -i -u GigaBytes
+$ stmx memory -i -u GigaBytes
  7 / 32
-❯ stmx memory -i 'MEM' -u Megabytes
+$ stmx memory -i 'MEM' -u Megabytes
 MEM 6219 / 32150
 ```
 #### Battery
