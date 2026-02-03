@@ -24,7 +24,12 @@ public class BatteryCommandTests
         var consoleOut = new StringWriter();
         Console.SetOut(consoleOut);
 
-        await cmd.ExecuteAsync(showIcon: true, showStatusIcon: true, showPercent: true);
+        await cmd.ExecuteAsync(
+            showIcon: true,
+            showStatusIcon: true,
+            showPercentIcon: true,
+            percentIconValue: "%"
+        );
 
         Assert.That(consoleOut.ToString(), Is.EqualTo("CAP_ICONSTATUS_ICON 80%"));
     }
@@ -44,7 +49,12 @@ public class BatteryCommandTests
         var consoleOut = new StringWriter();
         Console.SetOut(consoleOut);
 
-        await cmd.ExecuteAsync(showIcon: false, showStatusIcon: false, showPercent: false);
+        await cmd.ExecuteAsync(
+            showIcon: false,
+            showStatusIcon: false,
+            showPercentIcon: false,
+            percentIconValue: ""
+        );
 
         Assert.That(consoleOut.ToString(), Is.EqualTo(""));
     }
@@ -73,12 +83,14 @@ public class BatteryCommandTests
         var consoleOut = new StringWriter();
         Console.SetOut(consoleOut);
 
-        // Use defaults
-        await cmd.ExecuteAsync(showIcon: opts.DefaultShowBatteryIcon,
-                               showStatusIcon: opts.DefaultShowBatteryChargingIcon,
-                               showPercent: opts.DefaultShowBatteryPercent);
+        await cmd.ExecuteAsync(
+            showIcon: false,
+            showStatusIcon: false,
+            showPercentIcon: false,
+            percentIconValue: "%"
+        );
 
-        Assert.That(consoleOut.ToString(), Is.EqualTo("ICON50 50%"));
+        Assert.That(consoleOut.ToString(), Is.EqualTo("50"));
     }
 }
 
