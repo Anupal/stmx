@@ -14,14 +14,10 @@ public class MemoryCommandTests
         var mockStatsService = new Mock<ISystemStatsService>();
         var mockIconService = new Mock<IIconService>();
 
-        mockStatsService.Setup(s => s.GetMemoryUsagePercent(MemoryUnits.MibiBytes)).ReturnsAsync(75.0);
+        mockStatsService.Setup(s => s.GetMemoryUsagePercent()).ReturnsAsync(75.0);
         mockStatsService.SetupGet(s => s.Options).Returns(new SystemStatsServiceOptions
         {
             DefaultMemoryUnit = MemoryUnits.MibiBytes
-        });
-        mockIconService.SetupGet(s => s.Options).Returns(new IconServiceOptions
-        {
-            MemoryIcon = "MEM_ICON"
         });
 
         var cmd = new MemoryCommand(mockStatsService.Object, mockIconService.Object);
@@ -29,7 +25,12 @@ public class MemoryCommandTests
         var consoleOut = new StringWriter();
         Console.SetOut(consoleOut);
 
-        await cmd.ExecuteAsync(showIcon: true, showPercent: true, unit: MemoryUnits.MibiBytes);
+        await cmd.ExecuteAsync(
+                showIcon: true,
+                iconValue: "MEM_ICON",
+                showPercentIcon: true,
+                percentIconValue: "%",
+                unit: MemoryUnits.Percent);
 
         Assert.That(consoleOut.ToString(), Is.EqualTo("MEM_ICON 75.00%"));
     }
@@ -56,7 +57,12 @@ public class MemoryCommandTests
         var consoleOut = new StringWriter();
         Console.SetOut(consoleOut);
 
-        await cmd.ExecuteAsync(showIcon: false, showPercent: false, unit: MemoryUnits.GibiBytes);
+        await cmd.ExecuteAsync(
+                showIcon: false,
+                iconValue: "",
+                showPercentIcon: true,
+                percentIconValue: "",
+                unit: MemoryUnits.GibiBytes);
 
         Assert.That(consoleOut.ToString(), Is.EqualTo("2 / 8"));
     }
@@ -64,36 +70,33 @@ public class MemoryCommandTests
     [Test]
     public async Task TestMemoryCommand_RespectsDefaultOptions()
     {
-        var opts = new SystemStatsServiceOptions
-        {
-            DefaultShowMemoryIcon = true,
-            DefaultShowBatteryPercent = true,
-            DefaultMemoryUnit = MemoryUnits.MibiBytes
-        };
-
         var mockStatsService = new Mock<ISystemStatsService>();
-        mockStatsService.SetupGet(s => s.Options).Returns(opts);
         var mockIconService = new Mock<IIconService>();
+
+        mockStatsService.Setup(s => s.GetMemoryUsagePercent()).ReturnsAsync(75.0);
+        mockStatsService.SetupGet(s => s.Options).Returns(new SystemStatsServiceOptions
+        {
+            DefaultMemoryUnit = MemoryUnits.MibiBytes
+        });
         mockIconService.SetupGet(s => s.Options).Returns(new IconServiceOptions
         {
-            MemoryIcon = "MEM_ICON"
+            MemoryIcon = "MEM_ICON",
+            PercentIcon = "%"
         });
-
-        mockStatsService.Setup(s => s.GetMemoryUsagePercent(MemoryUnits.MibiBytes)).ReturnsAsync(60.0);
 
         var cmd = new MemoryCommand(mockStatsService.Object, mockIconService.Object);
 
         var consoleOut = new StringWriter();
         Console.SetOut(consoleOut);
 
-        // Using defaults
         await cmd.ExecuteAsync(
-            showIcon: opts.DefaultShowMemoryIcon,
-            showPercent: opts.DefaultShowBatteryPercent,
-            unit: opts.DefaultMemoryUnit
-        );
+                showIcon: true,
+                iconValue: "",
+                showPercentIcon: true,
+                percentIconValue: "",
+                unit: MemoryUnits.Percent);
 
-        Assert.That(consoleOut.ToString(), Is.EqualTo("MEM_ICON 60.00%"));
+        Assert.That(consoleOut.ToString(), Is.EqualTo("MEM_ICON 75.00%"));
     }
 
     [Test]
@@ -102,7 +105,7 @@ public class MemoryCommandTests
         var mockStatsService = new Mock<ISystemStatsService>();
         var mockIconService = new Mock<IIconService>();
 
-        mockStatsService.Setup(s => s.GetMemoryUsagePercent(MemoryUnits.MibiBytes)).ReturnsAsync((double?)null);
+        mockStatsService.Setup(s => s.GetMemoryUsagePercent()).ReturnsAsync((double?)null);
         mockStatsService.Setup(s => s.GetMemoryUsageNumber(MemoryUnits.MibiBytes)).ReturnsAsync((string?)null);
 
         mockStatsService.SetupGet(s => s.Options).Returns(new SystemStatsServiceOptions
@@ -111,7 +114,8 @@ public class MemoryCommandTests
         });
         mockIconService.SetupGet(s => s.Options).Returns(new IconServiceOptions
         {
-            MemoryIcon = "MEM_ICON"
+            MemoryIcon = "MEM_ICON",
+            PercentIcon = "%"
         });
 
         var cmd = new MemoryCommand(mockStatsService.Object, mockIconService.Object);
@@ -120,13 +124,23 @@ public class MemoryCommandTests
         Console.SetOut(consoleOut);
 
         // Percent null
-        await cmd.ExecuteAsync(showIcon: true, showPercent: true, unit: MemoryUnits.MibiBytes);
+        await cmd.ExecuteAsync(
+                showIcon: true,
+                iconValue: "MEM_ICON",
+                showPercentIcon: true,
+                percentIconValue: "%",
+                unit: MemoryUnits.Percent);
         Assert.That(consoleOut.ToString(), Is.EqualTo("MEM_ICON %"));
 
         consoleOut.GetStringBuilder().Clear();
 
         // Number null
-        await cmd.ExecuteAsync(showIcon: true, showPercent: false, unit: MemoryUnits.MibiBytes);
+        await cmd.ExecuteAsync(
+                showIcon: true,
+                iconValue: "MEM_ICON",
+                showPercentIcon: false,
+                percentIconValue: "",
+                unit: MemoryUnits.MibiBytes);
         Assert.That(consoleOut.ToString(), Is.EqualTo("MEM_ICON "));
     }
 }

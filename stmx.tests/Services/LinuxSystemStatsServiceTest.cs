@@ -173,7 +173,7 @@ MemAvailable:   500 kB
 
         _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns(mockMemInfo);
 
-        double? percent = await _service.GetMemoryUsagePercent(MemoryUnits.KiloBytes);
+        double? percent = await _service.GetMemoryUsagePercent();
 
         Assert.That(percent, Is.EqualTo(75.0));
     }
@@ -193,7 +193,7 @@ MemAvailable:   500 kB
     {
         _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Throws(new IOException());
 
-        var result = await _service.GetMemoryUsagePercent(MemoryUnits.KiloBytes);
+        var result = await _service.GetMemoryUsagePercent();
 
         Assert.That(result, Is.Null);
     }
