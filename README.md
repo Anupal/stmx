@@ -8,39 +8,57 @@ Simple commandline utility to get systems stats.
 * CPU
   - Gets CPU utilization as a percentage
 * Memory
-  - Memory utilization as a percentage in CURRENT / TOTAL format.
-  - Supports both base2 and base10 memory units.
+  - Memory utilization as a percentage OR
+  - CURRENT / TOTAL format in both base2 and base10 memory units.
 * Battery
-  - Charging or Discharging
-  - Current capacity
-* All commands also support displaying and icon using `-i` flag.
+  - Current status - Charging or Discharging
+  - Current capacity as percentage
+* NERDFont icons!
 
-### Examples - Commandline
-```sh
-$ stmx cpu
-0.78%
-$ stmx cpu -i
+### Examples
+#### CPU
+```bash
+# print cpu usage with icons
+$ cpu -i -p
+ 0.79
+
+# use custom CPU icon
+$ stmx cpu -i 'C'
+C 0.77
+
+# use custom percent icon
+$ stmx cpu -i -p '%'
  0.78%
 
-$ stmx memory
-6384252 / 32151268
-$ stmx memory -i
- 6385076 / 32151268
+# use custom CPU and percent icons
+$ stmx cpu -i 'CPU' -p '%'
+CPU 0.77%
+```
+#### Memory
+```bash
+# print memory usage with icons
 $ stmx memory -i -p
- 19.83%
-$ stmx memory -i -u GigaBytes
- 7 / 32
-$ stmx memory -i -u MegaBytes
- 6366 / 32151
+ 19.41
 
-$ stmx battery -i -p -c
-󰁾󱐋 59%
-$ stmx battery -i -p
-󰁾 59%
-$ stmx battery -p
-60%
-$ stmx battery
-60
+# use custom memory icon
+$ stmx memory -i 'M' -p '%'
+M 19.35%
+
+# use other memory units
+❯ stmx memory -i -u GigaBytes
+ 7 / 32
+❯ stmx memory -i 'MEM' -u Megabytes
+MEM 6219 / 32150
+```
+#### Battery
+```bash
+# print battery info with icons
+$ stmx battery -i -s -p
+󰂁󱐋 89
+
+# use custom percent icon
+$ stmx battery -i -s -p '%'
+󰂁󱐋 88%
 ```
 
 ### Examples - Tmux
@@ -51,8 +69,8 @@ BG="#005f87"
 
 set-option -g status-right "\
 #[fg=${FG},bg=${BG}] \
-#(stmx battery -i -p -c) | \
-#(stmx memory -i -p) | \
+#(stmx battery -ips) | \
+#(stmx memory -ip) | \
 #(stmx cpu -i) | \
 %h %d %H:%M "
 set -g status-right-length 100
