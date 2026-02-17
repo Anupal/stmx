@@ -1,3 +1,5 @@
+using stmx.Utils;
+
 namespace stmx.Services;
 
 class IconService : IIconService
@@ -12,5 +14,12 @@ class IconService : IIconService
 
     public Task<string> GetBatteryStatusIcon(int batteryStatus) {
         return Task.FromResult(Options.BatteryStatusIcons[batteryStatus]);
+    }
+
+    public Task<string> GetDirectionIcon(bool download)
+    {
+        return Task.FromResult(
+            (download) ? Options.NetworkDownload : Options.NetworkUpload
+        );
     }
 }

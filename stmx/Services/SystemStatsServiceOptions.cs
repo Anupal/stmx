@@ -8,5 +8,7 @@ public class SystemStatsServiceOptions
     public bool DefaultShowBatteryChargingIcon { get; set; } = false;
     public bool DefaultShowBatteryPercent { get; set; } = false;
 
-    public MemoryUnits DefaultMemoryUnit {get; set; } = MemoryUnits.Percent;
+    public MemoryUnits DefaultMemoryUnit { get; set; } = MemoryUnits.Percent;
+    public NetworkUnits DefaultNetworkUnit { get; set; } = NetworkUnits.KiloBytesPerSecond;
+    public NetworkDirection DefaultNetworkDirection { get; set; } = NetworkDirection.Download;
 }
