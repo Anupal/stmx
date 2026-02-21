@@ -119,6 +119,32 @@ public class LinuxSystemStatsService : ISystemStatsService
         return new MemoryUsageData(totalMemory, availableMemory, MemoryUnits.KiloBytes);
     }
 
+    public async Task<NetworkSpeed> GetNetworkSpeed(NetworkUnits unit, int delaySecs)
+    {
+        // take two samples
+        var dataOld = ReadNetworkSpeedFromSysFile();
+        await Task.Delay(delaySecs * 1000);
+        var dataNew = ReadNetworkSpeedFromSysFile();
+
+        // compute speed in bits per second
+        var uploadSpeed = (dataNew.Upload - dataOld.Upload) / delaySecs;
+        var downloadSpeed = (dataNew.Download - dataOld.Download) / delaySecs;
+        var dataSpeed = new NetworkSpeed(uploadSpeed, downloadSpeed, NetworkUnits.Bits);
+
+        // auto or explicit conversion
+        return (unit == NetworkUnits.Auto)
+            ? dataSpeed.ConvertAuto()
+            : dataSpeed.ConvertTo(unit);
+    }
+
+    public NetworkSpeed ReadNetworkSpeedFromSysFile()
+    {
+        var upload = long.Parse(_fileReader.ReadAllText($"/sys/class/net/wlo1/statistics/tx_bytes")) * 8;
+        var download = long.Parse(_fileReader.ReadAllText($"/sys/class/net/wlo1/statistics/rx_bytes")) * 8;
+
+        return new NetworkSpeed(upload, download, NetworkUnits.Bits);
+    }
+
     public async Task<double?> GetCpuUsagePercent()
     {
         int delayMs = 100;
@@ -244,6 +270,69 @@ public class MemoryUsageData
 
             MemoryUnits.TeraBytes => 1_000_000_000_000,
             MemoryUnits.TibiBytes => 1_099_511_627_776,
+
+            _ => throw new ArgumentOutOfRangeException(nameof(unit))
+        };
+    }
+}
+
+public class NetworkSpeed
+{
+    public double Upload { set; get; }
+    public double Download { set; get; }
+    public NetworkUnits Unit { set; get; }
+
+    public NetworkSpeed(double upload, double download, NetworkUnits unit)
+    {
+        Upload = upload;
+        Download = download;
+        Unit = unit;
+    }
+
+    public NetworkSpeed ConvertTo(NetworkUnits targetUnit)
+    {
+        return new NetworkSpeed(
+            ConvertValue(Upload, Unit, targetUnit),
+            ConvertValue(Download, Unit, targetUnit),
+            targetUnit
+        );
+    }
+
+    // Assumes that upload and download are in bits
+    public NetworkSpeed ConvertAuto()
+    {
+        // use whichever is highest as reference value
+        double referenceValue = Math.Max(Upload, Download);
+
+        NetworkUnits targetUnit = referenceValue switch
+        {
+            >= 1_099_511_627_776 => NetworkUnits.TeraBits,
+            >= 1_073_741_824     => NetworkUnits.GigaBits,
+            >= 1_048_576         => NetworkUnits.MegaBits,
+            >= 1_024             => NetworkUnits.KiloBits,
+            _                    => NetworkUnits.Bits
+        };
+
+        return ConvertTo(targetUnit);
+    }
+
+    private static double ConvertValue(double value, NetworkUnits from, NetworkUnits to)
+    {
+        double bits = value * UnitToBitsFactor(from);
+        double result = bits / UnitToBitsFactor(to);
+
+        return result;
+    }
+
+    private static double UnitToBitsFactor(NetworkUnits unit)
+    {
+        return unit switch
+        {
+            NetworkUnits.Bits     => 1,
+            NetworkUnits.KiloBits => 1_024,
+            NetworkUnits.MegaBits => 1_048_576,
+            NetworkUnits.GigaBits => 1_073_741_824,
+            NetworkUnits.TeraBits => 1_099_511_627_776,
 
             _ => throw new ArgumentOutOfRangeException(nameof(unit))
         };

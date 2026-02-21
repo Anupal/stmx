@@ -23,14 +23,9 @@ public enum NetworkDirection
 public enum NetworkUnits
 {
     Auto = 0,
-    BytesPerSecond = 1,
-    BitsPerSecond = 2,
-    KiloBytesPerSecond = 3,
-    KiloBitsPerSecond = 4,
-    MegaBytesPerSecond = 5,
-    MegaBitsPerSecond = 6,
-    GigaBytesPerSecond = 7,
-    GigaBitsPerSecond = 8,
-    TeraBytesPerSecond = 9,
-    TeraBitsPerSecond = 10
+    Bits = 1,
+    KiloBits = 2,
+    MegaBits = 3,
+    GigaBits = 4,
+    TeraBits = 5
 }

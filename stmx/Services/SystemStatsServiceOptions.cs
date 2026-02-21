@@ -9,6 +9,6 @@ public class SystemStatsServiceOptions
     public bool DefaultShowBatteryPercent { get; set; } = false;
 
     public MemoryUnits DefaultMemoryUnit { get; set; } = MemoryUnits.Percent;
-    public NetworkUnits DefaultNetworkUnit { get; set; } = NetworkUnits.KiloBytesPerSecond;
+    public NetworkUnits DefaultNetworkUnit { get; set; } = NetworkUnits.Auto;
     public NetworkDirection DefaultNetworkDirection { get; set; } = NetworkDirection.Download;
 }

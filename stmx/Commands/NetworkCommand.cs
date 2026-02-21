@@ -26,6 +26,8 @@ class NetworkCommand : Command
         directionOption.DefaultValueFactory = _ => _systemStats.Options.DefaultNetworkDirection;
         Add(directionOption);
 
+        // option to specify network interface
+
         var unitOption = new Option<NetworkUnits>("--unit", "-u");
         unitOption.Description = "Select the network unit for display";
         unitOption.DefaultValueFactory = _ => _systemStats.Options.DefaultNetworkUnit;
@@ -48,23 +50,24 @@ class NetworkCommand : Command
     public async Task ExecuteAsync(bool showIcon, string iconValue, NetworkDirection direction,
             NetworkUnits unit)
     {
-        string directionIcon = getDirectionIcon(showIcon, iconValue, direction);
+        string directionIcon = await getDirectionIcon(showIcon, iconValue, direction);
+        var dataSpeed = await _systemStats.GetNetworkSpeed(unit, 3);
 
         if (direction == NetworkDirection.Download)
         {
-
+            System.Console.Write($"{directionIcon}{dataSpeed.Download:F2}");
         }
         else
         {
-
+            System.Console.Write($"{directionIcon}{dataSpeed.Upload:F2}");
         }
     }
 
-    private string getDirectionIcon(bool showIcon, string iconValue, NetworkDirection direction) {
+    private async Task<string> getDirectionIcon(bool showIcon, string iconValue, NetworkDirection direction) {
         if (showIcon)
         {
             return string.IsNullOrEmpty(iconValue)
-                    ? $"{_icons.GetDirectionIcon(direction == NetworkDirection.Download)} "
+                    ? $"{await _icons.GetDirectionIcon(direction == NetworkDirection.Download)} "
                     : $"{iconValue} ";
         }
         return "";

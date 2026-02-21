@@ -15,6 +15,7 @@ class Program
         services.AddTransient<Command, BatteryCommand>();
         services.AddTransient<Command, MemoryCommand>();
         services.AddTransient<Command, CpuCommand>();
+        services.AddTransient<Command, NetworkCommand>();
 
         // TODO: introduce a switch to load based on OS
         services.AddTransient<ISystemStatsService, LinuxSystemStatsService>();
