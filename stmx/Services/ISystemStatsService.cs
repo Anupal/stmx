@@ -8,7 +8,8 @@ public interface ISystemStatsService
     Task<int?> GetBatteryStatus();
     Task<string?> GetMemoryUsageNumber(MemoryUnits unit);
     Task<double?> GetMemoryUsagePercent();
-    Task<NetworkSpeedData> GetNetworkSpeed(NetworkUnits unit, int delaySecs);
+    Task<(NetworkSpeed Upload, NetworkSpeed Download)> GetNetworkSpeed(
+            NetworkUnits unit, string network, int delaySecs);
     Task<double?> GetCpuUsagePercent();
     SystemStatsServiceOptions Options { get; }
 }

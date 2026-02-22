@@ -119,30 +119,42 @@ public class LinuxSystemStatsService : ISystemStatsService
         return new MemoryUsageData(totalMemory, availableMemory, MemoryUnits.KiloBytes);
     }
 
-    public async Task<NetworkSpeed> GetNetworkSpeed(NetworkUnits unit, int delaySecs)
+    public async Task<(NetworkSpeed Upload, NetworkSpeed Download)> GetNetworkSpeed(
+            NetworkUnits unit, string network, int delaySecs)
     {
         // take two samples
-        var dataOld = ReadNetworkSpeedFromSysFile();
+        var dataOld = ReadNetworkSpeedFromSysFile(network);
         await Task.Delay(delaySecs * 1000);
-        var dataNew = ReadNetworkSpeedFromSysFile();
+        var dataNew = ReadNetworkSpeedFromSysFile(network);
 
         // compute speed in bits per second
-        var uploadSpeed = (dataNew.Upload - dataOld.Upload) / delaySecs;
-        var downloadSpeed = (dataNew.Download - dataOld.Download) / delaySecs;
-        var dataSpeed = new NetworkSpeed(uploadSpeed, downloadSpeed, NetworkUnits.Bits);
+        var uploadSpeed = new NetworkSpeed((dataNew.Upload - dataOld.Upload) / delaySecs, NetworkUnits.Bits);
+        var downloadSpeed = new NetworkSpeed((dataNew.Download - dataOld.Download) / delaySecs, NetworkUnits.Bits);
 
         // auto or explicit conversion
-        return (unit == NetworkUnits.Auto)
-            ? dataSpeed.ConvertAuto()
-            : dataSpeed.ConvertTo(unit);
+        if (unit == NetworkUnits.Auto)
+        {
+            return (uploadSpeed.ConvertAuto(), downloadSpeed.ConvertAuto());
+        }
+        else
+        {
+            return (uploadSpeed.ConvertTo(unit), downloadSpeed.ConvertTo(unit));
+        }
     }
 
-    public NetworkSpeed ReadNetworkSpeedFromSysFile()
+    // Returns current values of tx and rx counters
+    public (long Upload, long Download) ReadNetworkSpeedFromSysFile(string network_interface = "wlo1")
     {
-        var upload = long.Parse(_fileReader.ReadAllText($"/sys/class/net/wlo1/statistics/tx_bytes")) * 8;
-        var download = long.Parse(_fileReader.ReadAllText($"/sys/class/net/wlo1/statistics/rx_bytes")) * 8;
+        string basePath = $"/sys/class/net/{network_interface}";
+        if (!_fileSystem.DirectoryExists(basePath))
+            throw new IOException($"No entry found for network {network_interface}");
 
-        return new NetworkSpeed(upload, download, NetworkUnits.Bits);
+        var upload = long.Parse(_fileReader.ReadAllText(
+                    $"/sys/class/net/{network_interface}/statistics/tx_bytes")) * 8;
+        var download = long.Parse(_fileReader.ReadAllText(
+                    $"/sys/class/net/{network_interface}/statistics/rx_bytes")) * 8;
+
+        return (upload, download);
     }
 
     public async Task<double?> GetCpuUsagePercent()
@@ -278,22 +290,19 @@ public class MemoryUsageData
 
 public class NetworkSpeed
 {
-    public double Upload { set; get; }
-    public double Download { set; get; }
+    public double Value { set; get; }
     public NetworkUnits Unit { set; get; }
 
-    public NetworkSpeed(double upload, double download, NetworkUnits unit)
+    public NetworkSpeed(double value, NetworkUnits unit)
     {
-        Upload = upload;
-        Download = download;
+        Value = value;
         Unit = unit;
     }
 
     public NetworkSpeed ConvertTo(NetworkUnits targetUnit)
     {
         return new NetworkSpeed(
-            ConvertValue(Upload, Unit, targetUnit),
-            ConvertValue(Download, Unit, targetUnit),
+            ConvertValue(Value, Unit, targetUnit),
             targetUnit
         );
     }
@@ -301,16 +310,13 @@ public class NetworkSpeed
     // Assumes that upload and download are in bits
     public NetworkSpeed ConvertAuto()
     {
-        // use whichever is highest as reference value
-        double referenceValue = Math.Max(Upload, Download);
-
-        NetworkUnits targetUnit = referenceValue switch
+        NetworkUnits targetUnit = Value switch
         {
             >= 1_099_511_627_776 => NetworkUnits.TeraBits,
             >= 1_073_741_824     => NetworkUnits.GigaBits,
             >= 1_048_576         => NetworkUnits.MegaBits,
-            >= 1_024             => NetworkUnits.KiloBits,
-            _                    => NetworkUnits.Bits
+            _             => NetworkUnits.KiloBits
+            // not including bits per second with Auto option
         };
 
         return ConvertTo(targetUnit);
@@ -335,6 +341,20 @@ public class NetworkSpeed
             NetworkUnits.TeraBits => 1_099_511_627_776,
 
             _ => throw new ArgumentOutOfRangeException(nameof(unit))
+        };
+    }
+
+    public string UnitToString()
+    {
+        return Unit switch
+        {
+            NetworkUnits.Bits     => "b",
+            NetworkUnits.KiloBits => "k",
+            NetworkUnits.MegaBits => "m",
+            NetworkUnits.GigaBits => "g",
+            NetworkUnits.TeraBits => "t",
+
+            _ => throw new ArgumentOutOfRangeException(nameof(Unit))
         };
     }
 }

@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.Text;
 
 using stmx.Services;
 using stmx.Utils;
@@ -15,11 +16,16 @@ class NetworkCommand : Command
         _systemStats = systemStats ?? throw new ArgumentNullException(nameof(systemStats));
         _icons = icons ?? throw new ArgumentNullException(nameof(icons));
 
-        var showIconOption = new Option<string>("--show-icon", ["-i"]);
-        showIconOption.Description = "show icon (optionally provide custom icon)";
+        var showDownloadIconOption = new Option<string>("--show-download-icon", ["-di"]);
+        showDownloadIconOption.Description = "show download icon (optionally provide custom icon)";
+        showDownloadIconOption.Arity = ArgumentArity.ZeroOrOne;
+        Add(showDownloadIconOption);
+
+        var showUploadIconOption = new Option<string>("--show-upload-icon", ["-ui"]);
+        showUploadIconOption.Description = "show upload icon (optionally provide custom icon)";
         // this allows users to pass one or more values
-        showIconOption.Arity = ArgumentArity.ZeroOrOne;
-        Add(showIconOption);
+        showUploadIconOption.Arity = ArgumentArity.ZeroOrOne;
+        Add(showUploadIconOption);
 
         var directionOption = new Option<NetworkDirection>("--direction", "-d");
         directionOption.Description = "Show upload or download";
@@ -27,6 +33,16 @@ class NetworkCommand : Command
         Add(directionOption);
 
         // option to specify network interface
+        var networkOption = new Option<string>("--network", "-n");
+        networkOption.Description = "Select the network interface";
+        networkOption.Required = true;
+        Add(networkOption);
+
+        // option to specify sample delay
+        var delayOption = new Option<int>("--time-delay", "-t");
+        delayOption.Description = "Set the delay for sampling network speeds in seconds";
+        delayOption.DefaultValueFactory = _ => _systemStats.Options.DefaultNetworkDelay;
+        Add(delayOption);
 
         var unitOption = new Option<NetworkUnits>("--unit", "-u");
         unitOption.Description = "Select the network unit for display";
@@ -35,39 +51,65 @@ class NetworkCommand : Command
 
         SetAction(async (parseResult, cancellationToken) =>
         {
-            var iconValue = parseResult.GetValue(showIconOption);
+            var uploadIconValue = parseResult.GetValue(showUploadIconOption);
+            var downloadIconValue = parseResult.GetValue(showDownloadIconOption);
             var direction = parseResult.GetValue(directionOption);
+            var network = parseResult.GetValue(networkOption);
+            var delay = parseResult.GetValue(delayOption);
             var unit = parseResult.GetValue(unitOption);
             await ExecuteAsync(
-                parseResult.GetResult(showIconOption) is not null,
-                iconValue!,
+                parseResult.GetResult(showUploadIconOption) is not null,
+                uploadIconValue!,
+                parseResult.GetResult(showDownloadIconOption) is not null,
+                downloadIconValue!,
                 direction!,
+                network!,
+                delay!,
                 unit!
             );
         });
     }
 
-    public async Task ExecuteAsync(bool showIcon, string iconValue, NetworkDirection direction,
+    public async Task ExecuteAsync(
+            bool showUploadIcon,
+            string uploadIconValue,
+            bool showDownloadIcon,
+            string downloadIconValue,
+            NetworkDirection direction,
+            string network,
+            int delay,
             NetworkUnits unit)
     {
-        string directionIcon = await getDirectionIcon(showIcon, iconValue, direction);
-        var dataSpeed = await _systemStats.GetNetworkSpeed(unit, 3);
 
-        if (direction == NetworkDirection.Download)
+
+        var dataSpeed = await _systemStats.GetNetworkSpeed(unit, network, delay);
+        var commandOutputSb = new StringBuilder();
+
+        if (direction is NetworkDirection.Download or NetworkDirection.Both)
         {
-            System.Console.Write($"{directionIcon}{dataSpeed.Download:F2}");
+            string downloadIcon = GetDirectionIcon(showDownloadIcon, downloadIconValue, NetworkDirection.Download);
+            commandOutputSb.Append($"{downloadIcon}{dataSpeed.Download.Value:F2}{dataSpeed.Download.UnitToString()}");
         }
-        else
+        if (direction is NetworkDirection.Both)
+            commandOutputSb.Append(" ");
+        if (direction is NetworkDirection.Upload or NetworkDirection.Both)
         {
-            System.Console.Write($"{directionIcon}{dataSpeed.Upload:F2}");
+            string uploadIcon = GetDirectionIcon(showUploadIcon, uploadIconValue, NetworkDirection.Upload);
+            commandOutputSb.Append($"{uploadIcon}{dataSpeed.Upload.Value:F2}{dataSpeed.Upload.UnitToString()}");
         }
+
+        System.Console.Write(commandOutputSb.ToString());
     }
 
-    private async Task<string> getDirectionIcon(bool showIcon, string iconValue, NetworkDirection direction) {
+    private string GetDirectionIcon(bool showIcon, string iconValue, NetworkDirection direction) {
         if (showIcon)
         {
+            var defaultIcon = direction == NetworkDirection.Upload
+                ? _icons.Options.NetworkUpload
+                : _icons.Options.NetworkDownload;
+
             return string.IsNullOrEmpty(iconValue)
-                    ? $"{await _icons.GetDirectionIcon(direction == NetworkDirection.Download)} "
+                    ? $"{defaultIcon} "
                     : $"{iconValue} ";
         }
         return "";

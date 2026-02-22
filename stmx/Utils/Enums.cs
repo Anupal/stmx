@@ -16,6 +16,7 @@ public enum MemoryUnits
 
 public enum NetworkDirection
 {
+    Both = 0,
     Upload = 1,
     Download = 2
 }
