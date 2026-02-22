@@ -8,6 +8,9 @@ public class LinuxSystemStatsService : ISystemStatsService
 {
     private readonly IFileReader _fileReader;
     private readonly IFileSystem _fileSystem;
+    private readonly Regex TotalMemoryRegex = new (@"MemTotal:\s+(\d+)");
+    private readonly Regex AvailableMemoryRegex = new (@"MemAvailable:\s+(\d+)");
+    private readonly Regex CpuTimesRegex = new (@"cpu\s+(\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+)");
 
     public LinuxSystemStatsService(IFileReader fileReader, IFileSystem fileSystem)
     {
@@ -108,13 +111,10 @@ public class LinuxSystemStatsService : ISystemStatsService
     // This data is always in KiloBytes
     public MemoryUsageData ReadMemoryUsageFromProcFile()
     {
-        string totalMemoryPattern = @"MemTotal:\s+(\d+)";
-        string availableMemoryPattern = @"MemAvailable:\s+(\d+)";
-
         string memoryInfo = _fileReader.ReadAllText("/proc/meminfo");
 
-        long totalMemory = long.Parse(Regex.Matches(memoryInfo, totalMemoryPattern)[0].Groups[1].Value);
-        long availableMemory = long.Parse(Regex.Matches(memoryInfo, availableMemoryPattern)[0].Groups[1].Value);
+        long totalMemory    = long.Parse(TotalMemoryRegex.Match(memoryInfo).Groups[1].Value);
+        long availableMemory = long.Parse(AvailableMemoryRegex.Match(memoryInfo).Groups[1].Value);
 
         return new MemoryUsageData(totalMemory, availableMemory, MemoryUnits.KiloBytes);
     }
@@ -222,11 +222,10 @@ public class LinuxSystemStatsService : ISystemStatsService
 
     public CpuTimesData ReadCpuUsageFromProcFile()
     {
-        string cpuTimesPattern = @"cpu\s+(\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+)";
-
         string cpuInfo = _fileReader.ReadAllText("/proc/stat");
 
-        var values = Regex.Matches(cpuInfo, cpuTimesPattern)[0].Groups;
+        // var values = Regex.Matches(cpuInfo, cpuTimesPattern)[0].Groups;
+        var values = CpuTimesRegex.Match(cpuInfo).Groups;
 
         return new CpuTimesData
         {
