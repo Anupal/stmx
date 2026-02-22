@@ -128,8 +128,16 @@ public class LinuxSystemStatsService : ISystemStatsService
         var dataNew = ReadNetworkSpeedFromSysFile(network);
 
         // compute speed in bits per second
-        var uploadSpeed = new NetworkSpeed((dataNew.Upload - dataOld.Upload) / delaySecs, NetworkUnits.Bits);
-        var downloadSpeed = new NetworkSpeed((dataNew.Download - dataOld.Download) / delaySecs, NetworkUnits.Bits);
+        // If the counter was reset to 0 for second sample
+        // set the diff to 0 using Math.Max() to avoid negative value
+        var uploadSpeed = new NetworkSpeed(
+                Math.Max(0, dataNew.Upload - dataOld.Upload) / delaySecs,
+                NetworkUnits.Bits
+        );
+        var downloadSpeed = new NetworkSpeed(
+                Math.Max(0, dataNew.Download - dataOld.Download) / delaySecs,
+                NetworkUnits.Bits
+        );
 
         // auto or explicit conversion
         if (unit == NetworkUnits.Auto)

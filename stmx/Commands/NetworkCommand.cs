@@ -42,6 +42,12 @@ class NetworkCommand : Command
         var delayOption = new Option<int>("--time-delay", "-t");
         delayOption.Description = "Set the delay for sampling network speeds in seconds";
         delayOption.DefaultValueFactory = _ => _systemStats.Options.DefaultNetworkDelay;
+        delayOption.Validators.Add(result =>
+        {
+            var value = result.GetValueOrDefault<int>();
+            if (value <= 0)
+                result.AddError("Delay must be greater than 0");
+        });
         Add(delayOption);
 
         var unitOption = new Option<NetworkUnits>("--unit", "-u");
