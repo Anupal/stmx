@@ -61,6 +61,21 @@ $ stmx battery -i -s -p '%'
 󰂁󱐋 88%
 ```
 
+#### Network
+```bash
+# print network upload and ownload speeds
+$ stmx network -di -ui
+󰜮 0.77k 󰜷 1.65k
+
+# Use custom icons
+$ stmx network -di D -ui U
+D 0.00k U 0.00k
+
+# Only print download speed
+$ stmx network -d Download -di
+󰜮 0.00k
+```
+
 ### Examples - Tmux
 I use following config to get an informative Tmux status bar.
 ```conf
