@@ -385,5 +385,22 @@ MemAvailable:   500 kB
         Assert.That(upload.Value, Is.GreaterThanOrEqualTo(0));
         Assert.That(download.Value, Is.GreaterThanOrEqualTo(0));
     }
+
+    [Test]
+    public void ReadNetworkSpeedFromSysFile_UsesDefaultInterface_WhenPassedDefault()
+    {
+        string mockRoute = "Iface\tDestination\tGateway\n" +
+                           "eth0\t00000000\t0101A8C0\n";
+
+        _fileSystemMock.Setup(fs => fs.DirectoryExists("/sys/class/net/eth0")).Returns(true);
+        _fileReaderMock.Setup(f => f.ReadAllText("/proc/net/route")).Returns(mockRoute);
+        _fileReaderMock.Setup(f => f.ReadAllText("/sys/class/net/eth0/statistics/tx_bytes")).Returns("1000");
+        _fileReaderMock.Setup(f => f.ReadAllText("/sys/class/net/eth0/statistics/rx_bytes")).Returns("2000");
+
+        var (upload, download) = _service.ReadNetworkSpeedFromSysFile("default");
+
+        Assert.That(upload, Is.EqualTo(1000 * 8));
+        Assert.That(download, Is.EqualTo(2000 * 8));
+    }
 }
 

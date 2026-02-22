@@ -11,5 +11,5 @@ public class SystemStatsServiceOptions
     public MemoryUnits DefaultMemoryUnit { get; set; } = MemoryUnits.Percent;
     public NetworkUnits DefaultNetworkUnit { get; set; } = NetworkUnits.Auto;
     public int DefaultNetworkDelay { get; set; } = 3;
-    public NetworkDirection DefaultNetworkDirection { get; set; } = NetworkDirection.Download;
+    public NetworkDirection DefaultNetworkDirection { get; set; } = NetworkDirection.Both;
 }

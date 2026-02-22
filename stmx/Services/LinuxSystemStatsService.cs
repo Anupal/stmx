@@ -153,6 +153,9 @@ public class LinuxSystemStatsService : ISystemStatsService
     // Returns current values of tx and rx counters
     public (long Upload, long Download) ReadNetworkSpeedFromSysFile(string network_interface = "wlo1")
     {
+        if (network_interface == "default")
+            network_interface = GetDefaultNetworkInterface();
+
         string basePath = $"/sys/class/net/{network_interface}";
         if (!_fileSystem.DirectoryExists(basePath))
             throw new IOException($"No entry found for network {network_interface}");
@@ -163,6 +166,19 @@ public class LinuxSystemStatsService : ISystemStatsService
                     $"/sys/class/net/{network_interface}/statistics/rx_bytes")) * 8;
 
         return (upload, download);
+    }
+
+    public string GetDefaultNetworkInterface()
+    {
+        var lines = _fileReader.ReadAllText("/proc/net/route").Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        // skip header line, find route with destination 00000000 (default)
+        foreach (var line in lines.Skip(1))
+        {
+            var fields = line.Split('\t');
+            if (fields.Length > 1 && fields[1] == "00000000")
+                return fields[0];
+        }
+        throw new IOException("No default network interface found");
     }
 
     public async Task<double?> GetCpuUsagePercent()

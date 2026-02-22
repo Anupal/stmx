@@ -36,6 +36,7 @@ class NetworkCommand : Command
         var networkOption = new Option<string>("--network", "-n");
         networkOption.Description = "Select the network interface";
         networkOption.Required = true;
+        networkOption.DefaultValueFactory = _ => "default";
         Add(networkOption);
 
         // option to specify sample delay
