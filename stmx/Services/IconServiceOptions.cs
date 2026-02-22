@@ -13,4 +13,6 @@ public class IconServiceOptions
     public string MemoryIcon { get; set; } = "";
     public string CpuIcon { get; set; } = "";
     public string PercentIcon { get; set; } = "";
+    public string NetworkDownload { get; set; } = "󰜮";
+    public string NetworkUpload { get; set; } = "󰜷";
 }

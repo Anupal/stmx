@@ -13,3 +13,20 @@ public enum MemoryUnits
     TeraBytes = 8,
     TibiBytes = 9
 }
+
+public enum NetworkDirection
+{
+    Both = 0,
+    Upload = 1,
+    Download = 2
+}
+
+public enum NetworkUnits
+{
+    Auto = 0,
+    Bits = 1,
+    KiloBits = 2,
+    MegaBits = 3,
+    GigaBits = 4,
+    TeraBits = 5
+}

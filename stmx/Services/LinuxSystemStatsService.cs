@@ -119,6 +119,68 @@ public class LinuxSystemStatsService : ISystemStatsService
         return new MemoryUsageData(totalMemory, availableMemory, MemoryUnits.KiloBytes);
     }
 
+    public async Task<(NetworkSpeed Upload, NetworkSpeed Download)> GetNetworkSpeed(
+            NetworkUnits unit, string network, int delaySecs)
+    {
+        // take two samples
+        var dataOld = ReadNetworkSpeedFromSysFile(network);
+        await Task.Delay(delaySecs * 1000);
+        var dataNew = ReadNetworkSpeedFromSysFile(network);
+
+        // compute speed in bits per second
+        // If the counter was reset to 0 for second sample
+        // set the diff to 0 using Math.Max() to avoid negative value
+        var uploadSpeed = new NetworkSpeed(
+                Math.Max(0, dataNew.Upload - dataOld.Upload) / delaySecs,
+                NetworkUnits.Bits
+        );
+        var downloadSpeed = new NetworkSpeed(
+                Math.Max(0, dataNew.Download - dataOld.Download) / delaySecs,
+                NetworkUnits.Bits
+        );
+
+        // auto or explicit conversion
+        if (unit == NetworkUnits.Auto)
+        {
+            return (uploadSpeed.ConvertAuto(), downloadSpeed.ConvertAuto());
+        }
+        else
+        {
+            return (uploadSpeed.ConvertTo(unit), downloadSpeed.ConvertTo(unit));
+        }
+    }
+
+    // Returns current values of tx and rx counters
+    public (long Upload, long Download) ReadNetworkSpeedFromSysFile(string network_interface = "wlo1")
+    {
+        if (network_interface == "default")
+            network_interface = GetDefaultNetworkInterface();
+
+        string basePath = $"/sys/class/net/{network_interface}";
+        if (!_fileSystem.DirectoryExists(basePath))
+            throw new IOException($"No entry found for network {network_interface}");
+
+        var upload = long.Parse(_fileReader.ReadAllText(
+                    $"/sys/class/net/{network_interface}/statistics/tx_bytes")) * 8;
+        var download = long.Parse(_fileReader.ReadAllText(
+                    $"/sys/class/net/{network_interface}/statistics/rx_bytes")) * 8;
+
+        return (upload, download);
+    }
+
+    public string GetDefaultNetworkInterface()
+    {
+        var lines = _fileReader.ReadAllText("/proc/net/route").Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        // skip header line, find route with destination 00000000 (default)
+        foreach (var line in lines.Skip(1))
+        {
+            var fields = line.Split('\t');
+            if (fields.Length > 1 && fields[1] == "00000000")
+                return fields[0];
+        }
+        throw new IOException("No default network interface found");
+    }
+
     public async Task<double?> GetCpuUsagePercent()
     {
         int delayMs = 100;
@@ -246,6 +308,77 @@ public class MemoryUsageData
             MemoryUnits.TibiBytes => 1_099_511_627_776,
 
             _ => throw new ArgumentOutOfRangeException(nameof(unit))
+        };
+    }
+}
+
+public class NetworkSpeed
+{
+    public double Value { set; get; }
+    public NetworkUnits Unit { set; get; }
+
+    public NetworkSpeed(double value, NetworkUnits unit)
+    {
+        Value = value;
+        Unit = unit;
+    }
+
+    public NetworkSpeed ConvertTo(NetworkUnits targetUnit)
+    {
+        return new NetworkSpeed(
+            ConvertValue(Value, Unit, targetUnit),
+            targetUnit
+        );
+    }
+
+    // Assumes that upload and download are in bits
+    public NetworkSpeed ConvertAuto()
+    {
+        NetworkUnits targetUnit = Value switch
+        {
+            >= 1_099_511_627_776 => NetworkUnits.TeraBits,
+            >= 1_073_741_824     => NetworkUnits.GigaBits,
+            >= 1_048_576         => NetworkUnits.MegaBits,
+            _             => NetworkUnits.KiloBits
+            // not including bits per second with Auto option
+        };
+
+        return ConvertTo(targetUnit);
+    }
+
+    private static double ConvertValue(double value, NetworkUnits from, NetworkUnits to)
+    {
+        double bits = value * UnitToBitsFactor(from);
+        double result = bits / UnitToBitsFactor(to);
+
+        return result;
+    }
+
+    private static double UnitToBitsFactor(NetworkUnits unit)
+    {
+        return unit switch
+        {
+            NetworkUnits.Bits     => 1,
+            NetworkUnits.KiloBits => 1_024,
+            NetworkUnits.MegaBits => 1_048_576,
+            NetworkUnits.GigaBits => 1_073_741_824,
+            NetworkUnits.TeraBits => 1_099_511_627_776,
+
+            _ => throw new ArgumentOutOfRangeException(nameof(unit))
+        };
+    }
+
+    public string UnitToString()
+    {
+        return Unit switch
+        {
+            NetworkUnits.Bits     => "b",
+            NetworkUnits.KiloBits => "k",
+            NetworkUnits.MegaBits => "m",
+            NetworkUnits.GigaBits => "g",
+            NetworkUnits.TeraBits => "t",
+
+            _ => throw new ArgumentOutOfRangeException(nameof(Unit))
         };
     }
 }
