@@ -243,19 +243,19 @@ public class LinuxSystemStatsService : ISystemStatsService
     }
 }
 
-public class CpuTimesData
-{
-    public long User { set; get; }
-    public long Nice { set; get; }
-    public long System { set; get; }
-    public long Idle { set; get; }
-    public long IOWait {set; get; }
-    public long IRQ { set; get; }
-    public long SoftIRQ { set; get; }
-    public long Steal { get; set; }
-    public long Guest { get; set; }
-    public long GuestNice { get; set; }
-}
+public record struct CpuTimesData
+(
+    long User,
+    long Nice,
+    long System,
+    long Idle,
+    long IOWait,
+    long IRQ,
+    long SoftIRQ,
+    long Steal,
+    long Guest,
+    long GuestNice
+);
 
 public class MemoryUsageData
 {
