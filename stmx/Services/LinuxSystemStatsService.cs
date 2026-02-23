@@ -124,7 +124,7 @@ public class LinuxSystemStatsService : ISystemStatsService
     {
         // take two samples
         var dataOld = await ReadNetworkSpeedFromSysFile(network);
-        await Task.Delay(delaySecs * 1000);
+        await Task.Delay(delaySecs * 1000).ConfigureAwait(false);;
         var dataNew = await ReadNetworkSpeedFromSysFile(network);
 
         // compute speed in bits per second
@@ -188,7 +188,7 @@ public class LinuxSystemStatsService : ISystemStatsService
         try
         {
             var oldValue = await ReadCpuUsageFromProcFile();
-            await Task.Delay(delayMs);
+            await Task.Delay(delayMs).ConfigureAwait(false);;
             var newValue = await ReadCpuUsageFromProcFile();
 
             // compute cpu usage
