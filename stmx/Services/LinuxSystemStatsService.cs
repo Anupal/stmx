@@ -124,7 +124,7 @@ public class LinuxSystemStatsService : ISystemStatsService
     {
         // take two samples
         var dataOld = await ReadNetworkSpeedFromSysFile(network);
-        await Task.Delay(delaySecs * 1000).ConfigureAwait(false);;
+        await Task.Delay(delaySecs * 1000).ConfigureAwait(false);
         var dataNew = await ReadNetworkSpeedFromSysFile(network);
 
         // compute speed in bits per second
@@ -257,20 +257,9 @@ public record struct CpuTimesData
     long GuestNice
 );
 
-public class MemoryUsageData
+public record MemoryUsageData(long Total, long Available, MemoryUnits Unit)
 {
-    public long Total { set; get; }
-    public long Available { set; get; }
-    public long Used { set; get; }
-    public MemoryUnits Unit { set; get; }
-
-    public MemoryUsageData(long total, long available, MemoryUnits unit)
-    {
-        Total = total;
-        Available = available;
-        Used = total - available;
-        Unit = unit;
-    }
+    public long Used => Total - Available;
 
     public MemoryUsageData ConvertTo(MemoryUnits targetUnit)
     {
@@ -311,17 +300,8 @@ public class MemoryUsageData
     }
 }
 
-public class NetworkSpeed
+public record struct NetworkSpeed(double Value, NetworkUnits Unit)
 {
-    public double Value { set; get; }
-    public NetworkUnits Unit { set; get; }
-
-    public NetworkSpeed(double value, NetworkUnits unit)
-    {
-        Value = value;
-        Unit = unit;
-    }
-
     public NetworkSpeed ConvertTo(NetworkUnits targetUnit)
     {
         return new NetworkSpeed(
