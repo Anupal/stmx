@@ -49,6 +49,12 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
+    - name: Install ARM64 cross-compilation tools
+      if: matrix.dotnet_rid == 'linux-arm64'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang llvm binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu zlib1g-dev
+
     - name: Publish Binary
       run: |
         dotnet publish ${APP_NAME}/${APP_NAME}.csproj \
