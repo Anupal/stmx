@@ -87,6 +87,7 @@ set-option -g status-right "\
 #(stmx battery -ips) | \
 #(stmx memory -ip) | \
 #(stmx cpu -ip) | \
+#(stmx network -di -ui -t 2) | \
 %h %d %H:%M "
 set -g status-right-length 100
 ```
