@@ -30,7 +30,7 @@ public class LinuxSystemStatsServiceTests
     [Test]
     public async Task TestGetBatteryCapacity_ReturnsParsedValue()
     {
-        _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns("85");
+        _fileReaderMock.Setup(f => f.ReadAllTextAsync(It.IsAny<string>())).ReturnsAsync("85");
 
         var result = await _service.GetBatteryCapacity();
 
@@ -40,18 +40,18 @@ public class LinuxSystemStatsServiceTests
     [Test]
     public async Task TestGetBatteryCapacity_ReturnsNull_WhenIOException()
     {
-        _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Throws(new IOException());
+        _fileReaderMock.Setup(f => f.ReadAllTextAsync(It.IsAny<string>())).Throws(new IOException());
 
         var result = await _service.GetBatteryCapacity();
 
-        Assert.Throws<IOException>(() => _service.ReadBatteryCapacityFromSysFile());
+        Assert.ThrowsAsync<IOException>(() => _service.ReadBatteryCapacityFromSysFile());
         Assert.That(result, Is.Null);
     }
 
     [Test]
     public async Task TestGetBatteryStatus_Charging_ReturnsOneWhenCharging()
     {
-        _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns("Charging");
+        _fileReaderMock.Setup(f => f.ReadAllTextAsync(It.IsAny<string>())).ReturnsAsync("Charging");
 
         var result = await _service.GetBatteryStatus();
 
@@ -61,7 +61,7 @@ public class LinuxSystemStatsServiceTests
     [Test]
     public async Task TestGetBatteryStatus_Charging_ReturnsOneWhenFull()
     {
-        _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns("Full");
+        _fileReaderMock.Setup(f => f.ReadAllTextAsync(It.IsAny<string>())).ReturnsAsync("Full");
 
         var result = await _service.GetBatteryStatus();
 
@@ -71,7 +71,7 @@ public class LinuxSystemStatsServiceTests
     [Test]
     public async Task TestGetBatteryStatus_Discharging_ReturnsZero()
     {
-        _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns("Discharging");
+        _fileReaderMock.Setup(f => f.ReadAllTextAsync(It.IsAny<string>())).ReturnsAsync("Discharging");
 
         var result = await _service.GetBatteryStatus();
 
@@ -81,7 +81,7 @@ public class LinuxSystemStatsServiceTests
     [Test]
     public async Task TestGetBatteryStatus_Unknown_ReturnsTwo()
     {
-        _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns("BadValue");
+        _fileReaderMock.Setup(f => f.ReadAllTextAsync(It.IsAny<string>())).ReturnsAsync("BadValue");
 
         var result = await _service.GetBatteryStatus();
 
@@ -115,16 +115,16 @@ public class LinuxSystemStatsServiceTests
     }
 
     [Test]
-    public void ReadMemoryUsageFromProcFile_ParsesCorrectly()
+    public async Task ReadMemoryUsageFromProcFile_ParsesCorrectly()
     {
         string mockMemInfo = @"
 MemTotal:       16384256 kB
 MemAvailable:   12345678 kB
 ";
 
-        _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns(mockMemInfo);
+        _fileReaderMock.Setup(f => f.ReadAllTextAsync(It.IsAny<string>())).ReturnsAsync(mockMemInfo);
 
-        var data = _service.ReadMemoryUsageFromProcFile();
+        var data = await _service.ReadMemoryUsageFromProcFile();
 
         Assert.That(data.Total, Is.EqualTo(16384256));
         Assert.That(data.Available, Is.EqualTo(12345678));
@@ -156,7 +156,7 @@ MemTotal:       2097152 kB
 MemAvailable:   1048576 kB
 ";
 
-        _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns(mockMemInfo);
+        _fileReaderMock.Setup(f => f.ReadAllTextAsync(It.IsAny<string>())).ReturnsAsync(mockMemInfo);
 
         string? result = await _service.GetMemoryUsageNumber(MemoryUnits.MibiBytes);
 
@@ -171,7 +171,7 @@ MemTotal:       2000 kB
 MemAvailable:   500 kB
 ";
 
-        _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Returns(mockMemInfo);
+        _fileReaderMock.Setup(f => f.ReadAllTextAsync(It.IsAny<string>())).ReturnsAsync(mockMemInfo);
 
         double? percent = await _service.GetMemoryUsagePercent();
 
@@ -181,7 +181,7 @@ MemAvailable:   500 kB
     [Test]
     public async Task GetMemoryUsageNumber_ReturnsNull_OnIOException()
     {
-        _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Throws(new IOException());
+        _fileReaderMock.Setup(f => f.ReadAllTextAsync(It.IsAny<string>())).Throws(new IOException());
 
         var result = await _service.GetMemoryUsageNumber(MemoryUnits.KiloBytes);
 
@@ -191,7 +191,7 @@ MemAvailable:   500 kB
     [Test]
     public async Task GetMemoryUsagePercent_ReturnsNull_OnIOException()
     {
-        _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>())).Throws(new IOException());
+        _fileReaderMock.Setup(f => f.ReadAllTextAsync(It.IsAny<string>())).Throws(new IOException());
 
         var result = await _service.GetMemoryUsagePercent();
 
@@ -199,14 +199,14 @@ MemAvailable:   500 kB
     }
 
     [Test]
-    public void ReadCpuUsageFromProcFile_ParsesCorrectly()
+    public async Task ReadCpuUsageFromProcFile_ParsesCorrectly()
     {
         string mockCpuStat = "cpu  100 200 300 400 50 60 70 80 90 100\n";
 
-        _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>()))
-            .Returns(mockCpuStat);
+        _fileReaderMock.Setup(f => f.ReadAllTextAsync(It.IsAny<string>()))
+            .ReturnsAsync(mockCpuStat);
 
-        var cpu = _service.ReadCpuUsageFromProcFile();
+        var cpu = await _service.ReadCpuUsageFromProcFile();
 
         Assert.That(cpu.User, Is.EqualTo(100));
         Assert.That(cpu.Nice, Is.EqualTo(200));
@@ -229,9 +229,9 @@ MemAvailable:   500 kB
         // Second sample slightly increased after delay
         string stat2 = "cpu  110 210 310 420 55 65 75 85 95 105\n";
 
-        _fileReaderMock.SetupSequence(f => f.ReadAllText(It.IsAny<string>()))
-            .Returns(stat1)
-            .Returns(stat2);
+        _fileReaderMock.SetupSequence(f => f.ReadAllTextAsync(It.IsAny<string>()))
+            .ReturnsAsync(stat1)
+            .ReturnsAsync(stat2);
 
         double? result = await _service.GetCpuUsagePercent();
 
@@ -246,9 +246,9 @@ MemAvailable:   500 kB
         // No difference between samples: totalDiff = 0
         string stat = "cpu  100 200 300 400 50 60 70 80 90 100\n";
 
-        _fileReaderMock.SetupSequence(f => f.ReadAllText(It.IsAny<string>()))
-            .Returns(stat)
-            .Returns(stat);
+        _fileReaderMock.SetupSequence(f => f.ReadAllTextAsync(It.IsAny<string>()))
+            .ReturnsAsync(stat)
+            .ReturnsAsync(stat);
 
         double? percent = await _service.GetCpuUsagePercent();
 
@@ -258,7 +258,7 @@ MemAvailable:   500 kB
     [Test]
     public async Task GetCpuUsagePercent_ReturnsNull_OnIOException()
     {
-        _fileReaderMock.Setup(f => f.ReadAllText(It.IsAny<string>()))
+        _fileReaderMock.Setup(f => f.ReadAllTextAsync(It.IsAny<string>()))
             .Throws(new IOException());
 
         var result = await _service.GetCpuUsagePercent();
@@ -267,25 +267,25 @@ MemAvailable:   500 kB
     }
 
     [Test]
-    public void ReadNetworkSpeedFromSysFile_ParsesCorrectly()
+    public async Task ReadNetworkSpeedFromSysFile_ParsesCorrectly()
     {
         _fileSystemMock.Setup(fs => fs.DirectoryExists("/sys/class/net/wlo1")).Returns(true);
-        _fileReaderMock.SetupSequence(f => f.ReadAllText(It.IsAny<string>()))
-            .Returns("1000") // tx_bytes
-            .Returns("2000"); // rx_bytes
+        _fileReaderMock.SetupSequence(f => f.ReadAllTextAsync(It.IsAny<string>()))
+            .ReturnsAsync("1000") // tx_bytes
+            .ReturnsAsync("2000"); // rx_bytes
 
-        var (upload, download) = _service.ReadNetworkSpeedFromSysFile("wlo1");
+        var (upload, download) = await _service.ReadNetworkSpeedFromSysFile("wlo1");
 
         Assert.That(upload, Is.EqualTo(1000 * 8));
         Assert.That(download, Is.EqualTo(2000 * 8));
     }
 
     [Test]
-    public void ReadNetworkSpeedFromSysFile_ThrowsIOException_WhenInterfaceNotFound()
+    public async Task ReadNetworkSpeedFromSysFile_ThrowsIOException_WhenInterfaceNotFound()
     {
         _fileSystemMock.Setup(fs => fs.DirectoryExists("/sys/class/net/eth99")).Returns(false);
 
-        Assert.Throws<IOException>(() => _service.ReadNetworkSpeedFromSysFile("eth99"));
+        Assert.ThrowsAsync<IOException>(() => _service.ReadNetworkSpeedFromSysFile("eth99"));
     }
 
     [Test]
@@ -296,11 +296,11 @@ MemAvailable:   500 kB
         // First sample: 1000 tx, 2000 rx bytes
         // Second sample: 4000 tx, 7000 rx bytes
         // Over 1 second delay: upload = (4000-1000)*8 = 24000 bps, download = (7000-2000)*8 = 40000 bps
-        _fileReaderMock.SetupSequence(f => f.ReadAllText(It.IsAny<string>()))
-            .Returns("1000")
-            .Returns("2000")
-            .Returns("4000")
-            .Returns("7000");
+        _fileReaderMock.SetupSequence(f => f.ReadAllTextAsync(It.IsAny<string>()))
+            .ReturnsAsync("1000")
+            .ReturnsAsync("2000")
+            .ReturnsAsync("4000")
+            .ReturnsAsync("7000");
 
         var (upload, download) = await _service.GetNetworkSpeed(NetworkUnits.Bits, "wlo1", 1);
 
@@ -317,11 +317,11 @@ MemAvailable:   500 kB
 
         // upload = (4000-1000)*8 = 24000 bps = ~23.4375 kbps
         // download = (7000-2000)*8 = 40000 bps = ~39.0625 kbps
-        _fileReaderMock.SetupSequence(f => f.ReadAllText(It.IsAny<string>()))
-            .Returns("1000")
-            .Returns("2000")
-            .Returns("4000")
-            .Returns("7000");
+        _fileReaderMock.SetupSequence(f => f.ReadAllTextAsync(It.IsAny<string>()))
+            .ReturnsAsync("1000")
+            .ReturnsAsync("2000")
+            .ReturnsAsync("4000")
+            .ReturnsAsync("7000");
 
         var (upload, download) = await _service.GetNetworkSpeed(NetworkUnits.KiloBits, "wlo1", 1);
 
@@ -337,11 +337,11 @@ MemAvailable:   500 kB
         _fileSystemMock.Setup(fs => fs.DirectoryExists("/sys/class/net/wlo1")).Returns(true);
 
         // Very low speed — should still return KiloBits not Bits
-        _fileReaderMock.SetupSequence(f => f.ReadAllText(It.IsAny<string>()))
-            .Returns("1000")
-            .Returns("2000")
-            .Returns("1001")
-            .Returns("2001");
+        _fileReaderMock.SetupSequence(f => f.ReadAllTextAsync(It.IsAny<string>()))
+            .ReturnsAsync("1000")
+            .ReturnsAsync("2000")
+            .ReturnsAsync("1001")
+            .ReturnsAsync("2001");
 
         var (upload, download) = await _service.GetNetworkSpeed(NetworkUnits.Auto, "wlo1", 1);
 
@@ -355,11 +355,11 @@ MemAvailable:   500 kB
         _fileSystemMock.Setup(fs => fs.DirectoryExists("/sys/class/net/wlo1")).Returns(true);
 
         // delta = 200_000 bytes = 1_600_000 bits > 1_048_576 → MegaBits
-        _fileReaderMock.SetupSequence(f => f.ReadAllText(It.IsAny<string>()))
-            .Returns("0")
-            .Returns("0")
-            .Returns("200000")
-            .Returns("200000");
+        _fileReaderMock.SetupSequence(f => f.ReadAllTextAsync(It.IsAny<string>()))
+            .ReturnsAsync("0")
+            .ReturnsAsync("0")
+            .ReturnsAsync("200000")
+            .ReturnsAsync("200000");
 
         var (upload, download) = await _service.GetNetworkSpeed(NetworkUnits.Auto, "wlo1", 1);
 
@@ -373,11 +373,11 @@ MemAvailable:   500 kB
         _fileSystemMock.Setup(fs => fs.DirectoryExists("/sys/class/net/wlo1")).Returns(true);
 
         // Counter went backwards (interface reset)
-        _fileReaderMock.SetupSequence(f => f.ReadAllText(It.IsAny<string>()))
-            .Returns("5000")
-            .Returns("5000")
-            .Returns("100")
-            .Returns("100");
+        _fileReaderMock.SetupSequence(f => f.ReadAllTextAsync(It.IsAny<string>()))
+            .ReturnsAsync("5000")
+            .ReturnsAsync("5000")
+            .ReturnsAsync("100")
+            .ReturnsAsync("100");
 
         var (upload, download) = await _service.GetNetworkSpeed(NetworkUnits.Bits, "wlo1", 1);
 
@@ -387,17 +387,17 @@ MemAvailable:   500 kB
     }
 
     [Test]
-    public void ReadNetworkSpeedFromSysFile_UsesDefaultInterface_WhenPassedDefault()
+    public async Task ReadNetworkSpeedFromSysFile_UsesDefaultInterface_WhenPassedDefault()
     {
         string mockRoute = "Iface\tDestination\tGateway\n" +
                            "eth0\t00000000\t0101A8C0\n";
 
         _fileSystemMock.Setup(fs => fs.DirectoryExists("/sys/class/net/eth0")).Returns(true);
-        _fileReaderMock.Setup(f => f.ReadAllText("/proc/net/route")).Returns(mockRoute);
-        _fileReaderMock.Setup(f => f.ReadAllText("/sys/class/net/eth0/statistics/tx_bytes")).Returns("1000");
-        _fileReaderMock.Setup(f => f.ReadAllText("/sys/class/net/eth0/statistics/rx_bytes")).Returns("2000");
+        _fileReaderMock.Setup(f => f.ReadAllTextAsync("/proc/net/route")).ReturnsAsync(mockRoute);
+        _fileReaderMock.Setup(f => f.ReadAllTextAsync("/sys/class/net/eth0/statistics/tx_bytes")).ReturnsAsync("1000");
+        _fileReaderMock.Setup(f => f.ReadAllTextAsync("/sys/class/net/eth0/statistics/rx_bytes")).ReturnsAsync("2000");
 
-        var (upload, download) = _service.ReadNetworkSpeedFromSysFile("default");
+        var (upload, download) = await _service.ReadNetworkSpeedFromSysFile("default");
 
         Assert.That(upload, Is.EqualTo(1000 * 8));
         Assert.That(download, Is.EqualTo(2000 * 8));

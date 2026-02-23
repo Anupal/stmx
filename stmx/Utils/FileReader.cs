@@ -2,6 +2,6 @@ namespace stmx.Utils;
 
 public class FileReader : IFileReader
 {
-    public string ReadAllText(string path) => File.ReadAllText(path);
+    public Task<string> ReadAllTextAsync(string path) => File.ReadAllTextAsync(path);
 }
 

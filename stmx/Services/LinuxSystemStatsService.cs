@@ -8,6 +8,9 @@ public class LinuxSystemStatsService : ISystemStatsService
 {
     private readonly IFileReader _fileReader;
     private readonly IFileSystem _fileSystem;
+    private readonly Regex TotalMemoryRegex = new (@"MemTotal:\s+(\d+)");
+    private readonly Regex AvailableMemoryRegex = new (@"MemAvailable:\s+(\d+)");
+    private readonly Regex CpuTimesRegex = new (@"cpu\s+(\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+)");
 
     public LinuxSystemStatsService(IFileReader fileReader, IFileSystem fileSystem)
     {
@@ -21,7 +24,7 @@ public class LinuxSystemStatsService : ISystemStatsService
     {
         try
         {
-            return ReadBatteryCapacityFromSysFile();
+            return await ReadBatteryCapacityFromSysFile();
         }
         catch (IOException)
         {
@@ -29,20 +32,20 @@ public class LinuxSystemStatsService : ISystemStatsService
         }
     }
 
-    public int? ReadBatteryCapacityFromSysFile()
+    public async Task<int?> ReadBatteryCapacityFromSysFile()
     {
         string? batteryDir = GetBatterySysDirectory();
         if (batteryDir == null)
             throw new IOException("No directory found for battery in /sys/class/power_supply");
 
-        string batteryCapacity = _fileReader.ReadAllText($"/sys/class/power_supply/{batteryDir}/capacity");
+        string batteryCapacity = await _fileReader.ReadAllTextAsync($"/sys/class/power_supply/{batteryDir}/capacity");
         return int.Parse(batteryCapacity);
     }
 
     public async Task<int?> GetBatteryStatus() {
         try
         {
-            return ReadBatteryStatusFromSysFile();
+            return await ReadBatteryStatusFromSysFile();
         }
         catch (IOException)
         {
@@ -50,13 +53,13 @@ public class LinuxSystemStatsService : ISystemStatsService
         }
     }
 
-    public int? ReadBatteryStatusFromSysFile()
+    public async Task<int?> ReadBatteryStatusFromSysFile()
     {
         string? batteryDir = GetBatterySysDirectory();
         if (batteryDir == null)
             throw new IOException("No directory found for battery in /sys/class/power_supply");
 
-        string batteryStatus = _fileReader.ReadAllText($"/sys/class/power_supply/{batteryDir}/status").Trim('\n', '\r');
+        string batteryStatus = (await _fileReader.ReadAllTextAsync($"/sys/class/power_supply/{batteryDir}/status")).Trim('\n', '\r');
         if (batteryStatus == "Charging" || batteryStatus == "Full")
             return 1;
         else if (batteryStatus == "Discharging")
@@ -82,7 +85,7 @@ public class LinuxSystemStatsService : ISystemStatsService
     {
         try
         {
-            MemoryUsageData data = ReadMemoryUsageFromProcFile().ConvertTo(unit);
+            MemoryUsageData data = (await ReadMemoryUsageFromProcFile()).ConvertTo(unit);
             return $"{data.Used} / {data.Total}";
         }
         catch (IOException)
@@ -95,7 +98,7 @@ public class LinuxSystemStatsService : ISystemStatsService
     {
         try
         {
-            MemoryUsageData data = ReadMemoryUsageFromProcFile();
+            MemoryUsageData data = await ReadMemoryUsageFromProcFile();
             double percent = ((double)data.Used / data.Total) * 100;
             return Math.Round(percent, 2);
         }
@@ -106,15 +109,12 @@ public class LinuxSystemStatsService : ISystemStatsService
     }
 
     // This data is always in KiloBytes
-    public MemoryUsageData ReadMemoryUsageFromProcFile()
+    public async Task<MemoryUsageData> ReadMemoryUsageFromProcFile()
     {
-        string totalMemoryPattern = @"MemTotal:\s+(\d+)";
-        string availableMemoryPattern = @"MemAvailable:\s+(\d+)";
+        string memoryInfo = await _fileReader.ReadAllTextAsync("/proc/meminfo");
 
-        string memoryInfo = _fileReader.ReadAllText("/proc/meminfo");
-
-        long totalMemory = long.Parse(Regex.Matches(memoryInfo, totalMemoryPattern)[0].Groups[1].Value);
-        long availableMemory = long.Parse(Regex.Matches(memoryInfo, availableMemoryPattern)[0].Groups[1].Value);
+        long totalMemory    = long.Parse(TotalMemoryRegex.Match(memoryInfo).Groups[1].Value);
+        long availableMemory = long.Parse(AvailableMemoryRegex.Match(memoryInfo).Groups[1].Value);
 
         return new MemoryUsageData(totalMemory, availableMemory, MemoryUnits.KiloBytes);
     }
@@ -123,9 +123,9 @@ public class LinuxSystemStatsService : ISystemStatsService
             NetworkUnits unit, string network, int delaySecs)
     {
         // take two samples
-        var dataOld = ReadNetworkSpeedFromSysFile(network);
-        await Task.Delay(delaySecs * 1000);
-        var dataNew = ReadNetworkSpeedFromSysFile(network);
+        var dataOld = await ReadNetworkSpeedFromSysFile(network);
+        await Task.Delay(delaySecs * 1000).ConfigureAwait(false);
+        var dataNew = await ReadNetworkSpeedFromSysFile(network);
 
         // compute speed in bits per second
         // If the counter was reset to 0 for second sample
@@ -151,26 +151,26 @@ public class LinuxSystemStatsService : ISystemStatsService
     }
 
     // Returns current values of tx and rx counters
-    public (long Upload, long Download) ReadNetworkSpeedFromSysFile(string network_interface = "wlo1")
+    public async Task<(long Upload, long Download)> ReadNetworkSpeedFromSysFile(string network_interface = "wlo1")
     {
         if (network_interface == "default")
-            network_interface = GetDefaultNetworkInterface();
+            network_interface = await GetDefaultNetworkInterface();
 
         string basePath = $"/sys/class/net/{network_interface}";
         if (!_fileSystem.DirectoryExists(basePath))
             throw new IOException($"No entry found for network {network_interface}");
 
-        var upload = long.Parse(_fileReader.ReadAllText(
+        var upload = long.Parse(await _fileReader.ReadAllTextAsync(
                     $"/sys/class/net/{network_interface}/statistics/tx_bytes")) * 8;
-        var download = long.Parse(_fileReader.ReadAllText(
+        var download = long.Parse(await _fileReader.ReadAllTextAsync(
                     $"/sys/class/net/{network_interface}/statistics/rx_bytes")) * 8;
 
         return (upload, download);
     }
 
-    public string GetDefaultNetworkInterface()
+    public async Task<string> GetDefaultNetworkInterface()
     {
-        var lines = _fileReader.ReadAllText("/proc/net/route").Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var lines = (await _fileReader.ReadAllTextAsync("/proc/net/route")).Split('\n', StringSplitOptions.RemoveEmptyEntries);
         // skip header line, find route with destination 00000000 (default)
         foreach (var line in lines.Skip(1))
         {
@@ -187,9 +187,9 @@ public class LinuxSystemStatsService : ISystemStatsService
 
         try
         {
-            var oldValue = ReadCpuUsageFromProcFile();
-            await Task.Delay(delayMs);
-            var newValue = ReadCpuUsageFromProcFile();
+            var oldValue = await ReadCpuUsageFromProcFile();
+            await Task.Delay(delayMs).ConfigureAwait(false);;
+            var newValue = await ReadCpuUsageFromProcFile();
 
             // compute cpu usage
             long idleOld = oldValue.Idle + oldValue.IOWait;
@@ -220,13 +220,12 @@ public class LinuxSystemStatsService : ISystemStatsService
         }
     }
 
-    public CpuTimesData ReadCpuUsageFromProcFile()
+    public async Task<CpuTimesData> ReadCpuUsageFromProcFile()
     {
-        string cpuTimesPattern = @"cpu\s+(\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+) (\d+)";
+        string cpuInfo = await _fileReader.ReadAllTextAsync("/proc/stat");
 
-        string cpuInfo = _fileReader.ReadAllText("/proc/stat");
-
-        var values = Regex.Matches(cpuInfo, cpuTimesPattern)[0].Groups;
+        // var values = Regex.Matches(cpuInfo, cpuTimesPattern)[0].Groups;
+        var values = CpuTimesRegex.Match(cpuInfo).Groups;
 
         return new CpuTimesData
         {
@@ -244,34 +243,23 @@ public class LinuxSystemStatsService : ISystemStatsService
     }
 }
 
-public class CpuTimesData
-{
-    public long User { set; get; }
-    public long Nice { set; get; }
-    public long System { set; get; }
-    public long Idle { set; get; }
-    public long IOWait {set; get; }
-    public long IRQ { set; get; }
-    public long SoftIRQ { set; get; }
-    public long Steal { get; set; }
-    public long Guest { get; set; }
-    public long GuestNice { get; set; }
-}
+public record struct CpuTimesData
+(
+    long User,
+    long Nice,
+    long System,
+    long Idle,
+    long IOWait,
+    long IRQ,
+    long SoftIRQ,
+    long Steal,
+    long Guest,
+    long GuestNice
+);
 
-public class MemoryUsageData
+public record MemoryUsageData(long Total, long Available, MemoryUnits Unit)
 {
-    public long Total { set; get; }
-    public long Available { set; get; }
-    public long Used { set; get; }
-    public MemoryUnits Unit { set; get; }
-
-    public MemoryUsageData(long total, long available, MemoryUnits unit)
-    {
-        Total = total;
-        Available = available;
-        Used = total - available;
-        Unit = unit;
-    }
+    public long Used => Total - Available;
 
     public MemoryUsageData ConvertTo(MemoryUnits targetUnit)
     {
@@ -312,17 +300,8 @@ public class MemoryUsageData
     }
 }
 
-public class NetworkSpeed
+public record struct NetworkSpeed(double Value, NetworkUnits Unit)
 {
-    public double Value { set; get; }
-    public NetworkUnits Unit { set; get; }
-
-    public NetworkSpeed(double value, NetworkUnits unit)
-    {
-        Value = value;
-        Unit = unit;
-    }
-
     public NetworkSpeed ConvertTo(NetworkUnits targetUnit)
     {
         return new NetworkSpeed(
